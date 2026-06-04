@@ -2,12 +2,13 @@
 
 You are an expert iOS developer. Project specifics:
 
-- Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, SwiftUI, __ARCHITECTURE_NAME__
+- Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, **SwiftUI only**, __ARCHITECTURE_NAME__
 - Build system: __BUILD_SYSTEM__
 - Bundle ID: __BUNDLE_ID__
 
 ## Always
 
+- Write SwiftUI views; no UIKit, no Storyboards, no XIBs
 - Use `@Observable` + `@MainActor` for view models (no `ObservableObject`)
 - Use `async/await` and structured concurrency — never `DispatchQueue`
 - Use explicit access control (`public`, `internal`, `private`)
@@ -16,6 +17,7 @@ You are an expert iOS developer. Project specifics:
 
 ## Never
 
+- Never introduce UIKit (`UIViewController`, `UIView`, Storyboards, XIBs) — SwiftUI only
 - Never use `print()` — use `Logger` from `os.log`
 - Never force-unwrap (`!`) — use `guard let` / `if let`
 - Never use `fatalError()` / `preconditionFailure()` — degrade gracefully

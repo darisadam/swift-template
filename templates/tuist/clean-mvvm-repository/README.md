@@ -6,6 +6,8 @@ Pick this for medium-to-large iOS apps with strict architectural requirements.
 
 > 💡 New to Clean Architecture? Read `docs/architecture-decisions.md` (section #3-clean-architecture--mvvm--repository) in the swift-template repo first.
 
+> 🎨 **SwiftUI only** — every template in this repo uses SwiftUI views, `@Observable` view models, and `async/await`. UIKit, Storyboards, and XIBs are not supported.
+
 ## What you see when you run it
 
 `Cmd+R`. Two tabs:

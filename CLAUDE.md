@@ -6,6 +6,8 @@
 
 A curated set of iOS app templates with a CLI (`bin/ios-template`) that scaffolds new projects. Eight template variants live under `templates/{xcodegen,tuist}/{simple-mvvm,modular-mvvm,clean-mvvm-repository,modular-tca}/`. Shared assets (SwiftLint config, AI agent docs, gitignore, GitHub Actions) live under `shared/` and are layered into every generated project.
 
+**Scope: SwiftUI only.** Every template uses SwiftUI views and `@Observable` view models. Do not introduce UIKit, Storyboards, or XIBs into any template — that's a hard architectural constraint, not a preference. If a user asks for UIKit support, point them at the FAQ in `README.md` (the answer is "fork and adapt; this isn't the right starting point").
+
 ## Where to make changes
 
 | You want to… | Edit |

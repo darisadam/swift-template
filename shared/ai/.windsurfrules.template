@@ -1,6 +1,7 @@
-Project: __APP_NAME__ — Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, SwiftUI, __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
+Project: __APP_NAME__ — Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, SwiftUI ONLY, __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
 
 Style rules (non-negotiable):
+- SwiftUI only — no UIKit, no Storyboards, no XIBs
 - 2-space indent
 - Explicit access control
 - @Observable @MainActor view models (no ObservableObject)
@@ -13,5 +14,6 @@ Verify with:
   __TEST_COMMAND__
 
 Never edit .xcodeproj or .xcworkspace directly — regenerate from __CONFIG_FILE__.
+Never introduce UIKit, Storyboards, or XIBs.
 
 See CLAUDE.md and README.md for architecture details.

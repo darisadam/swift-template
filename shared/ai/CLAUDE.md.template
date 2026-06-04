@@ -4,10 +4,12 @@
 
 ## Project Overview
 
-**Tech Stack**: Swift __SWIFT_VERSION__ · iOS __DEPLOYMENT_TARGET__+ · SwiftUI · __ARCHITECTURE_NAME__ · __BUILD_SYSTEM__
+**Tech Stack**: Swift __SWIFT_VERSION__ · iOS __DEPLOYMENT_TARGET__+ · **SwiftUI** · __ARCHITECTURE_NAME__ · __BUILD_SYSTEM__
 **Bundle ID**: `__BUNDLE_ID__`
 **Organization**: __ORG_NAME__
 **Platforms**: __PLATFORMS__
+
+> **SwiftUI only.** Do not introduce UIKit, Storyboards, or XIBs. ViewModels are `@Observable @MainActor`; views are SwiftUI structs. UIKit ↔ SwiftUI bridging via `UIViewRepresentable` / `UIHostingController` is acceptable when wrapping a specific component, but the app architecture stays SwiftUI.
 
 ## Architecture
 
@@ -114,5 +116,6 @@ A task is NOT complete until SwiftLint shows zero violations AND all tests pass.
 
 - File boundary: only edit files inside this repo
 - Never modify generated `*.xcodeproj` / `*.xcworkspace` directly — regenerate from config
+- Never introduce UIKit, Storyboards, or XIBs — SwiftUI only
 - Don't run UI tests from CLI — only unit tests
 - Confirm before destructive commands (`rm -rf`, `git reset --hard`, force push)

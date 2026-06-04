@@ -6,6 +6,8 @@ Pick this when: you want every state change to be a testable value-type transfor
 
 > 💡 What's TCA? `docs/architecture-decisions.md` (section #4-modular-tca) in the swift-template repo explains the big idea. Point-Free's [TCA documentation](https://pointfreeco.github.io/swift-composable-architecture/) is the canonical reference.
 
+> 🎨 **SwiftUI only** — every template in this repo uses SwiftUI views, `@Observable` view models, and `async/await`. UIKit, Storyboards, and XIBs are not supported.
+
 ## What you see when you run it
 
 `Cmd+R`. Two tabs:

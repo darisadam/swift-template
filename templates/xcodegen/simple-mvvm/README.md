@@ -4,6 +4,8 @@ A single-target SwiftUI app with `@Observable` view models. The smallest, easies
 
 > 💡 Don't know what XcodeGen, MVVM, or `@Observable` mean? Read `docs/concepts.md` in the swift-template repo first.
 
+> 🎨 **SwiftUI only** — every template in this repo uses SwiftUI views, `@Observable` view models, and `async/await`. UIKit, Storyboards, and XIBs are not supported.
+
 ## What you see when you run it
 
 Hit `Cmd+R` in Xcode. The iOS Simulator opens and you see:

@@ -6,6 +6,8 @@ Pick this when: medium-to-large app, 3+ devs, multiple data sources, tests are a
 
 > 💡 First time seeing "Clean Architecture"? Read `docs/architecture-decisions.md` (section #3-clean-architecture--mvvm--repository) in the swift-template repo first — it explains *why* this layering exists.
 
+> 🎨 **SwiftUI only** — every template in this repo uses SwiftUI views, `@Observable` view models, and `async/await`. UIKit, Storyboards, and XIBs are not supported.
+
 ## What you see when you run it
 
 `Cmd+R`. Two tabs at the bottom:

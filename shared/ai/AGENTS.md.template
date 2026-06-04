@@ -4,7 +4,9 @@ This file is read by Codex, OpenAI Agents, Aider, and other agentic tools that f
 
 ## What this app is
 
-__APP_NAME__ — a Swift __SWIFT_VERSION__ / iOS __DEPLOYMENT_TARGET__+ application using __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
+__APP_NAME__ — a Swift __SWIFT_VERSION__ / iOS __DEPLOYMENT_TARGET__+ **SwiftUI** application using __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
+
+**SwiftUI only.** No UIKit, no Storyboards, no XIBs in the source tree. UIKit ↔ SwiftUI interop (`UIViewRepresentable`) is fine for wrapping a specific third-party UIKit component; the overall view tree stays SwiftUI.
 
 ## How to run
 
@@ -40,5 +42,6 @@ See `CLAUDE.md` for full architectural rules. The module dependency direction is
 ## Don't
 
 - Don't edit `*.xcodeproj` or `*.xcworkspace` — regenerate from `__CONFIG_FILE__`
+- Don't introduce UIKit, Storyboards, or XIBs — SwiftUI only
 - Don't add `// swiftlint:disable` — fix the root cause
 - Don't introduce a new external dependency without first checking if `Foundation` / `Swift` standard library covers it

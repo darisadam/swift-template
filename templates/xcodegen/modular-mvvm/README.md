@@ -6,6 +6,8 @@ Pick this when you have 5+ features and want clear ownership boundaries without 
 
 > 💡 Don't know what "modules" or "SPM" mean? Read `docs/concepts.md` in the swift-template repo first.
 
+> 🎨 **SwiftUI only** — every template in this repo uses SwiftUI views, `@Observable` view models, and `async/await`. UIKit, Storyboards, and XIBs are not supported.
+
 ## What you see when you run it
 
 Hit `Cmd+R`. The Simulator opens with a **tab bar at the bottom** showing two tabs:

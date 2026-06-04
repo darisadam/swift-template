@@ -5,9 +5,11 @@ This file is read by Google Gemini Code Assist (and Antigravity) for context abo
 ## Project
 
 - **Name**: __APP_NAME__
-- **Tech**: Swift __SWIFT_VERSION__ · iOS __DEPLOYMENT_TARGET__+ · SwiftUI · __ARCHITECTURE_NAME__
+- **Tech**: Swift __SWIFT_VERSION__ · iOS __DEPLOYMENT_TARGET__+ · **SwiftUI** · __ARCHITECTURE_NAME__
 - **Build system**: __BUILD_SYSTEM__
 - **Bundle ID**: `__BUNDLE_ID__`
+
+> **SwiftUI only.** Do not introduce UIKit, Storyboards, or XIBs. ViewModels are `@Observable @MainActor`; views are SwiftUI structs.
 
 ## How to run
 
@@ -46,5 +48,6 @@ See `README.md` for module map.
 ## Don't
 
 - Don't edit `*.xcodeproj` / `*.xcworkspace` directly — they're generated from `__CONFIG_FILE__`
+- Don't introduce UIKit, Storyboards, or XIBs — SwiftUI only
 - Don't introduce a new external dependency without checking if Foundation / Swift stdlib covers it
 - Don't widen access control just to make tests pass — use `@testable import`

@@ -4,7 +4,9 @@ Project context for Google Antigravity (and other Gemini-family agents that read
 
 ## Stack
 
-Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, SwiftUI, __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
+Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, **SwiftUI**, __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
+
+> **SwiftUI only.** Do not introduce UIKit, Storyboards, or XIBs. Views are SwiftUI structs; ViewModels are `@Observable @MainActor`.
 
 ## Commands
 
@@ -20,6 +22,7 @@ Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, SwiftUI, __ARCHITECTURE_NAM
 
 - 2-space indent everywhere
 - `@Observable @MainActor` ViewModels (not `ObservableObject`)
+- SwiftUI views (not UIKit, Storyboards, XIBs)
 - `async/await` and actors; no `DispatchQueue`
 - Sorted imports
 - No `print`, no `fatalError`, no force-unwrap (`!`)

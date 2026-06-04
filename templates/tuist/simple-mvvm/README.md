@@ -6,6 +6,8 @@ Pick this when you want Tuist's type-safe Swift manifests but don't need module 
 
 > 💡 Don't know what Tuist, MVVM, or `@Observable` mean? Read `docs/concepts.md` in the swift-template repo first.
 
+> 🎨 **SwiftUI only** — every template in this repo uses SwiftUI views, `@Observable` view models, and `async/await`. UIKit, Storyboards, and XIBs are not supported.
+
 ## What you see when you run it
 
 Hit `Cmd+R` in Xcode. The Simulator opens and shows a counter screen: a big `0`, three buttons (`−`, Reset, `+`). Tap them, the number changes. That's the example feature — replace it with your own once you understand the layout.

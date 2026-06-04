@@ -122,7 +122,7 @@ For a real device (or the App Store), Apple requires every app to be cryptograph
 
 ### SwiftUI
 
-Apple's modern UI framework. You write your views as Swift structs (not storyboards). All template UI is SwiftUI.
+Apple's modern UI framework. You write your views as Swift structs (not storyboards). **All templates in this repo are SwiftUI-only — UIKit, Storyboards, and XIBs are not supported.** You can still bridge to UIKit via `UIViewRepresentable` / `UIHostingController` if you need a specific UIKit component, but the app's overall view tree is SwiftUI.
 
 ```swift
 struct HomeView: View {

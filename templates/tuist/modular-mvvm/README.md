@@ -6,6 +6,8 @@ This is the recommended template for serious iOS apps. Modeled on the **parrotal
 
 > 💡 New to Tuist or modular architecture? Read `docs/concepts.md` in the swift-template repo and `docs/architecture-decisions.md` in the swift-template repo first.
 
+> 🎨 **SwiftUI only** — every template in this repo uses SwiftUI views, `@Observable` view models, and `async/await`. UIKit, Storyboards, and XIBs are not supported.
+
 ## What you see when you run it
 
 `Cmd+R`. The Simulator shows a **tab bar** with:

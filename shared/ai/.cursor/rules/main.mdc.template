@@ -5,10 +5,11 @@ alwaysApply: true
 
 # __APP_NAME__ Cursor rules
 
-You are an expert iOS developer working on **__APP_NAME__**, a Swift __SWIFT_VERSION__ / iOS __DEPLOYMENT_TARGET__+ SwiftUI app using __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
+You are an expert iOS developer working on **__APP_NAME__**, a Swift __SWIFT_VERSION__ / iOS __DEPLOYMENT_TARGET__+ **SwiftUI-only** app using __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
 
 ## Always
 
+- Write SwiftUI views — no UIKit, no Storyboards, no XIBs
 - Use `@Observable` + `@MainActor` for ViewModels
 - Use `async/await` and structured concurrency — never `DispatchQueue`
 - Use explicit access control (`public`, `internal`, `private`)
@@ -17,6 +18,7 @@ You are an expert iOS developer working on **__APP_NAME__**, a Swift __SWIFT_VER
 
 ## Never
 
+- Never introduce UIKit, Storyboards, or XIBs — SwiftUI only
 - Never use `print()` — use `Logger` from `os.log`
 - Never force-unwrap (`!`) — use `guard let` / `if let`
 - Never use `fatalError()` / `preconditionFailure()` — degrade gracefully

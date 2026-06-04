@@ -4,6 +4,13 @@ This walkthrough assumes **you have never built an iOS app before.** By the end 
 
 > 💡 Stuck on a word? [`concepts.md`](concepts.md) is the glossary.
 
+## What this is and isn't
+
+- **Is**: a **SwiftUI** scaffolding toolkit. Every generated project uses SwiftUI views, `@Observable` view models, and `async/await` concurrency.
+- **Isn't**: a UIKit toolkit. You won't find `UIViewController`, Storyboards, or XIBs in any template. If you need UIKit-first scaffolding, start from Xcode's UIKit App template instead — you'll be fighting these templates the whole way otherwise.
+
+(SwiftUI ↔ UIKit interop via `UIViewRepresentable` is fine — you can drop a UIKit view into a SwiftUI screen generated here. The architecture itself is SwiftUI, not your individual views.)
+
 ## Step 0: Do you have the prerequisites?
 
 You need a **Mac** (Intel or Apple Silicon, macOS 14+ recommended). iOS dev is macOS-only — you literally can't build iOS apps from Windows or Linux without a Mac somewhere in the loop.

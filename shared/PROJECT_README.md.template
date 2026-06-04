@@ -2,7 +2,9 @@
 
 > *One-line elevator pitch goes here. Replace this.*
 
-An iOS app built with Swift __SWIFT_VERSION__, SwiftUI, and __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__. Minimum iOS __DEPLOYMENT_TARGET__.
+An iOS app built with Swift __SWIFT_VERSION__, **SwiftUI**, and __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__. Minimum iOS __DEPLOYMENT_TARGET__.
+
+> 🎨 **SwiftUI only.** This project uses SwiftUI views and `@Observable` view models. There is no UIKit, no Storyboards, and no XIBs. (UIKit interop via `UIViewRepresentable` is fine if you need a specific component.)
 
 ## Quickstart
 

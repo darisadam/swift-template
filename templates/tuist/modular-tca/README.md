@@ -6,6 +6,8 @@ Pick this when: you want TCA *and* the production-grade module separation Tuist 
 
 > 💡 First time with TCA? Read `docs/architecture-decisions.md` (section #4-modular-tca) in the swift-template repo and [Point-Free's docs](https://pointfreeco.github.io/swift-composable-architecture/) first. The TCA-specific exercises in the XcodeGen / Modular TCA template README (in the swift-template repo) apply here too.
 
+> 🎨 **SwiftUI only** — every template in this repo uses SwiftUI views, `@Observable` view models, and `async/await`. UIKit, Storyboards, and XIBs are not supported.
+
 ## What you see when you run it
 
 `Cmd+R`. Two tabs:
