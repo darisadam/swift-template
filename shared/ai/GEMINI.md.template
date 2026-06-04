@@ -1,0 +1,50 @@
+# __APP_NAME__ — Gemini Code Assist instructions
+
+This file is read by Google Gemini Code Assist (and Antigravity) for context about this project. Keep it consistent with `CLAUDE.md` if both exist.
+
+## Project
+
+- **Name**: __APP_NAME__
+- **Tech**: Swift __SWIFT_VERSION__ · iOS __DEPLOYMENT_TARGET__+ · SwiftUI · __ARCHITECTURE_NAME__
+- **Build system**: __BUILD_SYSTEM__
+- **Bundle ID**: `__BUNDLE_ID__`
+
+## How to run
+
+```bash
+./setup.sh
+__GENERATE_COMMAND__
+```
+
+## Verification (run after every change)
+
+```bash
+swiftlint lint --fix --config .swiftlint.yml
+swiftlint lint --config .swiftlint.yml
+
+__TEST_COMMAND__
+```
+
+Both must pass before declaring a task done.
+
+## Code rules
+
+- 2-space indent
+- Explicit access control (`public`, `internal`, `private`)
+- `@Observable @MainActor` for ViewModels — no `ObservableObject`
+- `async/await` only — no `DispatchQueue`
+- Sorted imports
+- No `print` / `fatalError` / force-unwrap
+- Never add `// swiftlint:disable` — fix the root cause
+
+## Architecture
+
+This project uses **__ARCHITECTURE_NAME__**. The module dependency direction is `Features → Core → External`. Never invert.
+
+See `README.md` for module map.
+
+## Don't
+
+- Don't edit `*.xcodeproj` / `*.xcworkspace` directly — they're generated from `__CONFIG_FILE__`
+- Don't introduce a new external dependency without checking if Foundation / Swift stdlib covers it
+- Don't widen access control just to make tests pass — use `@testable import`

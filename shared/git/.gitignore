@@ -1,0 +1,86 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Xcode
+build/
+DerivedData/
+Derived/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Package.resolved
+
+# CocoaPods (legacy — kept for safety)
+Pods/
+*.podspec.json
+
+# Carthage
+Carthage/Build/
+Carthage/Checkouts/
+
+# Tuist
+Tuist/.build
+Tuist/Dependencies/
+Tuist/ProjectDescriptionHelpers/*.generated.swift
+graph.png
+.tuist-bin/
+*.xcodeproj/
+*.xcworkspace/
+
+# XcodeGen
+# (project.yml is committed; generated *.xcodeproj is not)
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+GoogleService-Info.plist
+AuthKey_*.p8
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs & build outputs
+*.log
+build_log.txt
+sonar/
+.sonar/
+.scannerwork/
+
+# AI agent runtime
+.aider*
+.cursor-tutor/

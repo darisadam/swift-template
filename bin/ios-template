@@ -1,0 +1,626 @@
+#!/usr/bin/env bash
+#
+# ios-template — scaffold a new iOS app from a curated template
+#
+# Usage:
+#   ios-template list
+#   ios-template new
+#   ios-template new --build-system tuist --architecture clean-mvvm-repository \
+#                   --name MyApp --bundle-id com.example.myapp \
+#                   --org "My Org" --output ~/Projects/MyApp \
+#                   --deployment-target 17.0 --swift-version 6.0
+#   ios-template add-platform --in <project-dir> --platform <ios|ipados|macos|visionos|maccatalyst|watchos>
+#   ios-template --help
+#
+# This is a pure-Bash CLI; no Python or Node needed. Templates live next to
+# this script under ../templates/.
+
+set -euo pipefail
+
+# ── Colors ────────────────────────────────────────────────────────────────────
+if [[ -t 1 ]]; then
+  RED='\033[0;31m'; GREEN='\033[0;32m'; BLUE='\033[0;34m'
+  YELLOW='\033[1;33m'; CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
+else
+  RED=''; GREEN=''; BLUE=''; YELLOW=''; CYAN=''; BOLD=''; DIM=''; NC=''
+fi
+
+log_info()    { printf "${CYAN}▸${NC} %s\n" "$*"; }
+log_success() { printf "${GREEN}✓${NC} %s\n" "$*"; }
+log_warn()    { printf "${YELLOW}⚠${NC}  %s\n" "$*"; }
+log_error()   { printf "${RED}✗${NC} %s\n" "$*" >&2; }
+log_step()    { printf "\n${BOLD}${BLUE}%s${NC}\n" "$*"; }
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_PATH/.." &> /dev/null && pwd)"
+TEMPLATES_DIR="$REPO_ROOT/templates"
+SHARED_DIR="$REPO_ROOT/shared"
+
+# ── Usage ─────────────────────────────────────────────────────────────────────
+usage() {
+  cat <<EOF
+${BOLD}ios-template${NC} — scaffold an iOS app from a curated template
+
+${BOLD}Commands:${NC}
+  list                          Show all available templates
+  new [flags]                   Create a new project (interactive if no flags)
+  add-platform [flags]          Add a platform destination to an existing project
+  doctor                        Verify your machine has the required tooling
+
+${BOLD}\`new\` flags:${NC}
+  --build-system <name>         tuist | xcodegen
+  --architecture <name>         simple-mvvm | modular-mvvm | clean-mvvm-repository | modular-tca
+  --name <AppName>              PascalCase app name (e.g. MyApp)
+  --bundle-id <com.example.x>   Reverse-DNS bundle identifier
+  --org <"Org Name">            Organization name
+  --output <path>               Where to create the project (default: ./<AppName>)
+  --deployment-target <ver>     Min iOS version (default: 17.0)
+  --swift-version <ver>         Swift version (default: 6.0)
+  --no-git                      Skip 'git init' + initial commit
+  --no-setup                    Skip running setup.sh after scaffold
+  -y, --yes                     Use defaults for any flag not supplied
+
+${BOLD}\`add-platform\` flags:${NC}
+  --in <project-dir>            Path to the generated project (default: cwd)
+  --platform <name>             ios | ipados | macos | visionos | maccatalyst | watchos
+
+${BOLD}Examples:${NC}
+  ${DIM}# Interactive:${NC}
+  ios-template new
+
+  ${DIM}# Fully scripted:${NC}
+  ios-template new \\
+    --build-system tuist \\
+    --architecture clean-mvvm-repository \\
+    --name Aurora \\
+    --bundle-id com.example.aurora \\
+    --org "Example Org" \\
+    --output ~/Projects/Aurora
+
+  ${DIM}# Add Vision Pro support to an existing project:${NC}
+  ios-template add-platform --in ~/Projects/Aurora --platform visionos
+EOF
+}
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+prompt() {
+  # prompt <question> <default>
+  local question="$1" default="${2:-}" answer
+  if [[ -n "$default" ]]; then
+    printf "${CYAN}?${NC} %s ${DIM}[%s]${NC}: " "$question" "$default" >&2
+  else
+    printf "${CYAN}?${NC} %s: " "$question" >&2
+  fi
+  read -r answer
+  printf "%s" "${answer:-$default}"
+}
+
+prompt_choice() {
+  # prompt_choice <question> <choices...>
+  local question="$1"; shift
+  local choices=("$@") choice
+  printf "${CYAN}?${NC} %s\n" "$question" >&2
+  local i=1
+  for c in "${choices[@]}"; do
+    printf "    ${BOLD}%d.${NC} %s\n" "$i" "$c" >&2
+    ((i++))
+  done
+  while true; do
+    printf "${CYAN}▸${NC} Enter number [1-${#choices[@]}]: " >&2
+    read -r choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#choices[@]} )); then
+      printf "%s" "${choices[$((choice - 1))]}"
+      return
+    fi
+    log_warn "Please enter a number between 1 and ${#choices[@]}"
+  done
+}
+
+# JSON-free parser for template.json fields we care about. Pure POSIX awk.
+# Usage: read_field <file> <key>  →  prints value (no quotes)
+read_field() {
+  local file="$1" key="$2"
+  awk -v key="$key" '
+    {
+      if (match($0, "\"" key "\"[[:space:]]*:[[:space:]]*\"[^\"]*\"")) {
+        v = substr($0, RSTART, RLENGTH)
+        sub("\"" key "\"[[:space:]]*:[[:space:]]*\"", "", v)
+        sub("\"$", "", v)
+        print v
+        exit
+      }
+    }
+  ' "$file"
+}
+
+# Replace placeholders in every text file under a directory tree.
+substitute_placeholders() {
+  local root="$1"
+  local app_name="$2" bundle_id="$3" org_name="$4"
+  local swift_version="$5" deployment_target="$6"
+  local arch_name="$7" build_system="$8"
+
+  # Escape for sed
+  local sed_app sed_bundle sed_org sed_swift sed_dep sed_arch sed_bs
+  sed_app="$(printf '%s' "$app_name" | sed 's:[][\\/.^$*]:\\&:g')"
+  sed_bundle="$(printf '%s' "$bundle_id" | sed 's:[][\\/.^$*]:\\&:g')"
+  sed_org="$(printf '%s' "$org_name" | sed 's:[][\\/.^$*]:\\&:g')"
+  sed_swift="$(printf '%s' "$swift_version" | sed 's:[][\\/.^$*]:\\&:g')"
+  sed_dep="$(printf '%s' "$deployment_target" | sed 's:[][\\/.^$*]:\\&:g')"
+  sed_arch="$(printf '%s' "$arch_name" | sed 's:[][\\/.^$*]:\\&:g')"
+  sed_bs="$(printf '%s' "$build_system" | sed 's:[][\\/.^$*]:\\&:g')"
+
+  # Find every text file (Swift, YAML, JSON, MD, plist, sh, swiftlint) and substitute
+  while IFS= read -r -d '' file; do
+    # Skip binary files just in case
+    if LC_ALL=C grep -lI . "$file" > /dev/null 2>&1; then
+      sed -i.bak \
+        -e "s/__APP_NAME__/$sed_app/g" \
+        -e "s/__BUNDLE_ID__/$sed_bundle/g" \
+        -e "s/__ORG_NAME__/$sed_org/g" \
+        -e "s/__SWIFT_VERSION__/$sed_swift/g" \
+        -e "s/__DEPLOYMENT_TARGET__/$sed_dep/g" \
+        -e "s/__ARCHITECTURE_NAME__/$sed_arch/g" \
+        -e "s/__BUILD_SYSTEM__/$sed_bs/g" \
+        "$file"
+      rm -f "$file.bak"
+    fi
+  done < <(find "$root" -type f \
+    \( -name "*.swift" -o -name "*.yml" -o -name "*.yaml" -o -name "*.json" \
+       -o -name "*.md" -o -name "*.plist" -o -name "*.sh" -o -name "*.toml" \
+       -o -name ".swiftlint.yml" -o -name ".swiftformat" -o -name ".gitignore" \
+       -o -name ".cursorrules" -o -name ".editorconfig" -o -name "Info.plist" \
+       -o -name "Package.swift" \) \
+    -print0)
+}
+
+# Rename any file/directory that contains __APP_NAME__ in its path.
+rename_app_name_paths() {
+  local root="$1" app_name="$2"
+  # Rename deepest-first so child renames don't break parent paths.
+  while IFS= read -r -d '' path; do
+    local new_path="${path//__APP_NAME__/$app_name}"
+    if [[ "$path" != "$new_path" ]]; then
+      mv "$path" "$new_path"
+    fi
+  done < <(find "$root" -depth -name "*__APP_NAME__*" -print0)
+}
+
+list_templates() {
+  printf "\n${BOLD}Available templates${NC}\n\n"
+  printf "  ${DIM}%-12s %-30s %s${NC}\n" "BUILD" "ARCHITECTURE" "DESCRIPTION"
+  printf "  ${DIM}%-12s %-30s %s${NC}\n" "-----" "------------" "-----------"
+  for bs_dir in "$TEMPLATES_DIR"/*/; do
+    local bs
+    bs="$(basename "$bs_dir")"
+    for arch_dir in "$bs_dir"*/; do
+      local arch_key meta_file name desc
+      arch_key="$(basename "$arch_dir")"
+      meta_file="$arch_dir/template.json"
+      if [[ -f "$meta_file" ]]; then
+        name="$(read_field "$meta_file" "architecture")"
+        desc="$(read_field "$meta_file" "description")"
+        # Truncate description for display
+        if (( ${#desc} > 65 )); then
+          desc="${desc:0:62}..."
+        fi
+        printf "  %-12s %-30s %s\n" "$bs" "$arch_key" "$desc"
+      fi
+    done
+  done
+  printf "\n${DIM}Run ${NC}${BOLD}ios-template new${NC}${DIM} to scaffold a project interactively.${NC}\n\n"
+}
+
+doctor() {
+  log_step "Checking your environment…"
+  local ok=1
+
+  if command -v xcodebuild >/dev/null 2>&1; then
+    log_success "Xcode: $(xcodebuild -version | head -1)"
+  else
+    log_error "Xcode Command Line Tools not found. Run: xcode-select --install"
+    ok=0
+  fi
+
+  if command -v swiftlint >/dev/null 2>&1; then
+    log_success "SwiftLint: $(swiftlint version)"
+  else
+    log_warn "SwiftLint not found (will be installed when you run setup.sh)"
+  fi
+
+  if command -v tuist >/dev/null 2>&1; then
+    log_success "Tuist: $(tuist version 2>/dev/null || echo unknown)"
+  else
+    log_warn "Tuist not installed (only needed for Tuist templates)"
+  fi
+
+  if command -v xcodegen >/dev/null 2>&1; then
+    log_success "XcodeGen: $(xcodegen --version 2>/dev/null | head -1 || echo unknown)"
+  else
+    log_warn "XcodeGen not installed (only needed for XcodeGen templates)"
+  fi
+
+  if command -v mise >/dev/null 2>&1; then
+    log_success "mise: $(mise --version)"
+  else
+    log_warn "mise not installed (recommended for Tuist version pinning)"
+  fi
+
+  if command -v git >/dev/null 2>&1; then
+    log_success "git: $(git --version)"
+  else
+    log_warn "git not found"
+  fi
+
+  echo
+  if (( ok == 1 )); then
+    log_success "You're good to scaffold a project."
+  else
+    log_error "Fix the issues above before running 'new'."
+    exit 1
+  fi
+}
+
+# ── Sub-command: new ─────────────────────────────────────────────────────────
+cmd_new() {
+  local build_system="" architecture="" app_name="" bundle_id=""
+  local org_name="" output_dir="" deployment_target="" swift_version=""
+  local do_git=1 do_setup=1 use_defaults=0
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --build-system)      build_system="$2"; shift 2 ;;
+      --architecture)      architecture="$2"; shift 2 ;;
+      --name)              app_name="$2"; shift 2 ;;
+      --bundle-id)         bundle_id="$2"; shift 2 ;;
+      --org)               org_name="$2"; shift 2 ;;
+      --output)            output_dir="$2"; shift 2 ;;
+      --deployment-target) deployment_target="$2"; shift 2 ;;
+      --swift-version)     swift_version="$2"; shift 2 ;;
+      --no-git)            do_git=0; shift ;;
+      --no-setup)          do_setup=0; shift ;;
+      -y|--yes)            use_defaults=1; shift ;;
+      -h|--help)           usage; exit 0 ;;
+      *) log_error "Unknown flag: $1"; usage; exit 1 ;;
+    esac
+  done
+
+  log_step "🦅  ios-template — new project"
+
+  # Interactive fill-in
+  if [[ -z "$build_system" ]]; then
+    build_system="$(prompt_choice "Build system?" "tuist" "xcodegen")"
+  fi
+  if [[ ! -d "$TEMPLATES_DIR/$build_system" ]]; then
+    log_error "Unknown build system: $build_system"
+    exit 1
+  fi
+
+  if [[ -z "$architecture" ]]; then
+    local archs=()
+    for d in "$TEMPLATES_DIR/$build_system"/*/; do
+      archs+=("$(basename "$d")")
+    done
+    architecture="$(prompt_choice "Architecture?" "${archs[@]}")"
+  fi
+
+  local template_dir="$TEMPLATES_DIR/$build_system/$architecture"
+  if [[ ! -d "$template_dir" ]]; then
+    log_error "Template not found: $build_system/$architecture"
+    log_info "Run 'ios-template list' to see available templates."
+    exit 1
+  fi
+
+  if [[ -z "$app_name" ]]; then
+    app_name="$(prompt "App name (PascalCase)" "MyApp")"
+  fi
+  if [[ ! "$app_name" =~ ^[A-Z][A-Za-z0-9]*$ ]]; then
+    log_error "App name must be PascalCase (letters/digits only, starting uppercase). Got: '$app_name'"
+    exit 1
+  fi
+
+  if [[ -z "$bundle_id" ]]; then
+    local default_bundle="com.example.$(printf '%s' "$app_name" | tr '[:upper:]' '[:lower:]')"
+    bundle_id="$(prompt "Bundle ID (reverse-DNS)" "$default_bundle")"
+  fi
+  if [[ ! "$bundle_id" =~ ^[a-z][a-z0-9]*(\.[a-z0-9][a-z0-9-]*)+$ ]]; then
+    log_warn "Bundle ID '$bundle_id' looks unusual. Continuing anyway."
+  fi
+
+  if [[ -z "$org_name" ]]; then
+    org_name="$(prompt "Organization name" "Example Org")"
+  fi
+
+  if [[ -z "$output_dir" ]]; then
+    output_dir="$(prompt "Output directory" "./$app_name")"
+  fi
+  # Expand ~ manually since we don't use eval
+  output_dir="${output_dir/#\~/$HOME}"
+
+  if [[ -e "$output_dir" ]]; then
+    log_error "Output directory already exists: $output_dir"
+    exit 1
+  fi
+
+  if [[ -z "$deployment_target" ]]; then
+    if (( use_defaults )); then
+      deployment_target="17.0"
+    else
+      deployment_target="$(prompt "iOS deployment target" "17.0")"
+    fi
+  fi
+
+  if [[ -z "$swift_version" ]]; then
+    if (( use_defaults )); then
+      swift_version="6.0"
+    else
+      swift_version="$(prompt "Swift version" "6.0")"
+    fi
+  fi
+
+  local arch_name
+  arch_name="$(read_field "$template_dir/template.json" "architecture")"
+
+  printf "\n${BOLD}Summary${NC}\n"
+  printf "  Build system:        ${CYAN}%s${NC}\n" "$build_system"
+  printf "  Architecture:        ${CYAN}%s${NC}\n" "$arch_name"
+  printf "  App name:            ${CYAN}%s${NC}\n" "$app_name"
+  printf "  Bundle ID:           ${CYAN}%s${NC}\n" "$bundle_id"
+  printf "  Organization:        ${CYAN}%s${NC}\n" "$org_name"
+  printf "  Output:              ${CYAN}%s${NC}\n" "$output_dir"
+  printf "  Deployment target:   ${CYAN}iOS %s${NC}\n" "$deployment_target"
+  printf "  Swift version:       ${CYAN}%s${NC}\n" "$swift_version"
+  printf "  Run setup.sh:        ${CYAN}%s${NC}\n" "$([[ $do_setup -eq 1 ]] && echo yes || echo no)"
+  printf "  Init git:            ${CYAN}%s${NC}\n" "$([[ $do_git -eq 1 ]] && echo yes || echo no)"
+
+  if (( use_defaults == 0 )); then
+    local confirm
+    confirm="$(prompt "Proceed?" "yes")"
+    if [[ ! "$confirm" =~ ^(y|yes|Y|YES)$ ]]; then
+      log_warn "Cancelled."
+      exit 1
+    fi
+  fi
+
+  log_step "Copying template…"
+  mkdir -p "$(dirname "$output_dir")"
+  # cp -R preserves the tree, then we substitute and rename.
+  cp -R "$template_dir" "$output_dir"
+  # Remove the template-internal metadata file from the generated project
+  rm -f "$output_dir/template.json"
+  log_success "Template copied"
+
+  log_step "Adding shared assets (linting, gitignore, AI agent files)…"
+  cp "$SHARED_DIR/linting/.swiftlint.yml" "$output_dir/.swiftlint.yml"
+  cp "$SHARED_DIR/linting/.swiftformat" "$output_dir/.swiftformat"
+  cp "$SHARED_DIR/git/.gitignore" "$output_dir/.gitignore"
+  cp "$SHARED_DIR/.editorconfig" "$output_dir/.editorconfig"
+  cp "$SHARED_DIR/mise.toml.template" "$output_dir/mise.toml"
+  cp "$SHARED_DIR/ai/CLAUDE.md.template" "$output_dir/CLAUDE.md"
+  cp "$SHARED_DIR/ai/AGENTS.md.template" "$output_dir/AGENTS.md"
+  cp "$SHARED_DIR/ai/.cursorrules.template" "$output_dir/.cursorrules"
+  mkdir -p "$output_dir/.claude/commands"
+  cp "$SHARED_DIR/ai/.claude/settings.json.template" "$output_dir/.claude/settings.json"
+  cp "$SHARED_DIR/ai/.claude/commands/"*.md "$output_dir/.claude/commands/"
+  mkdir -p "$output_dir/.github/workflows"
+  cp "$SHARED_DIR/github/workflows/ci.yml" "$output_dir/.github/workflows/ci.yml"
+
+  # Pick the right setup.sh template
+  if [[ "$build_system" == "xcodegen" ]]; then
+    cp "$SHARED_DIR/setup-xcodegen.sh.template" "$output_dir/setup.sh"
+  else
+    cp "$SHARED_DIR/setup-tuist.sh.template" "$output_dir/setup.sh"
+  fi
+  chmod +x "$output_dir/setup.sh"
+  log_success "Shared assets copied"
+
+  log_step "Substituting placeholders…"
+  # Derive aux fields for templated CLAUDE.md / AGENTS.md / cursorrules.
+  # IMPORTANT: these strings themselves contain __APP_NAME__, so we expand
+  # __APP_NAME__ inside them BEFORE injecting them into the docs — otherwise
+  # the docs end up with literal "__APP_NAME__" inside command examples.
+  local generate_cmd test_cmd config_file platforms_str
+  generate_cmd="$(read_field "$template_dir/template.json" "generateCommand")"
+  test_cmd="$(read_field "$template_dir/template.json" "testCommand")"
+  config_file="$(read_field "$template_dir/template.json" "configFile")"
+  platforms_str="iPhone, iPad"
+
+  generate_cmd="${generate_cmd//__APP_NAME__/$app_name}"
+  test_cmd="${test_cmd//__APP_NAME__/$app_name}"
+  config_file="${config_file//__APP_NAME__/$app_name}"
+
+  # Escape sed REPLACEMENT-side metacharacters: \, &, and the delimiter |.
+  # Unescaped, `&` in `tuist install && tuist generate` would expand to the
+  # entire matched pattern (`__GENERATE_COMMAND__`), corrupting the output.
+  sed_escape_replacement() {
+    printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/&/\\&/g' -e 's/|/\\|/g'
+  }
+  local generate_cmd_esc test_cmd_esc config_file_esc platforms_esc
+  generate_cmd_esc="$(sed_escape_replacement "$generate_cmd")"
+  test_cmd_esc="$(sed_escape_replacement "$test_cmd")"
+  config_file_esc="$(sed_escape_replacement "$config_file")"
+  platforms_esc="$(sed_escape_replacement "$platforms_str")"
+
+  # Pass 1: AI-doc-specific tokens. Do this BEFORE the broad substitution so
+  # the resulting test/generate commands get their __APP_NAME__ replaced too.
+  while IFS= read -r -d '' file; do
+    sed -i.bak \
+      -e "s|__GENERATE_COMMAND__|$generate_cmd_esc|g" \
+      -e "s|__TEST_COMMAND__|$test_cmd_esc|g" \
+      -e "s|__CONFIG_FILE__|$config_file_esc|g" \
+      -e "s|__PLATFORMS__|$platforms_esc|g" \
+      -e "s|__ARCHITECTURE_DESCRIPTION__|See README.md and the module dependency graph.|g" \
+      "$file"
+    rm -f "$file.bak"
+  done < <(find "$output_dir" -type f \
+    \( -name "CLAUDE.md" -o -name "AGENTS.md" -o -name ".cursorrules" \
+       -o -name "ci.yml" \) -print0)
+
+  # Pass 2: broad placeholder substitution across all text files.
+  substitute_placeholders \
+    "$output_dir" \
+    "$app_name" "$bundle_id" "$org_name" \
+    "$swift_version" "$deployment_target" \
+    "$arch_name" "$build_system"
+
+  log_success "Placeholders substituted"
+
+  log_step "Renaming __APP_NAME__ paths…"
+  rename_app_name_paths "$output_dir" "$app_name"
+  log_success "Paths renamed"
+
+  if (( do_git == 1 )); then
+    log_step "Initializing git repository…"
+    (
+      cd "$output_dir"
+      git init -q
+      git checkout -q -b main 2>/dev/null || git checkout -q -B main
+      git add .
+      git -c commit.gpgsign=false commit -q -m "chore: scaffold $app_name from $build_system/$architecture template" || true
+    )
+    log_success "git repo initialized on 'main'"
+  fi
+
+  if (( do_setup == 1 )); then
+    log_step "Running setup.sh…"
+    (
+      cd "$output_dir"
+      ./setup.sh || log_warn "setup.sh failed — you can run it manually after fixing the issue."
+    )
+  else
+    log_warn "Skipped setup.sh — run it manually inside $output_dir when ready."
+  fi
+
+  printf "\n${GREEN}${BOLD}🎉 Done!${NC}\n\n"
+  printf "Next steps:\n"
+  printf "  ${BOLD}cd %s${NC}\n" "$output_dir"
+  if [[ "$build_system" == "tuist" ]]; then
+    printf "  ${BOLD}open %s.xcworkspace${NC}\n" "$app_name"
+  else
+    printf "  ${BOLD}open %s.xcodeproj${NC}\n" "$app_name"
+  fi
+  printf "  ${BOLD}swiftlint lint --config .swiftlint.yml${NC}    ${DIM}# zero-violation policy${NC}\n"
+  echo
+}
+
+# ── Sub-command: add-platform ────────────────────────────────────────────────
+cmd_add_platform() {
+  local in_dir="$PWD" platform=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --in)       in_dir="$2"; shift 2 ;;
+      --platform) platform="$2"; shift 2 ;;
+      -h|--help)  usage; exit 0 ;;
+      *) log_error "Unknown flag: $1"; usage; exit 1 ;;
+    esac
+  done
+
+  if [[ -z "$platform" ]]; then
+    platform="$(prompt_choice "Which platform?" \
+      "ipados" "macos" "visionos" "maccatalyst" "watchos")"
+  fi
+
+  in_dir="${in_dir/#\~/$HOME}"
+  if [[ ! -d "$in_dir" ]]; then
+    log_error "Directory not found: $in_dir"
+    exit 1
+  fi
+
+  log_step "Adding $platform support to $in_dir"
+
+  if [[ -f "$in_dir/project.yml" ]]; then
+    add_platform_xcodegen "$in_dir/project.yml" "$platform"
+  elif [[ -f "$in_dir/Project.swift" ]]; then
+    add_platform_tuist "$in_dir/Project.swift" "$platform"
+  else
+    log_error "Couldn't detect project type in $in_dir (no project.yml or Project.swift)"
+    exit 1
+  fi
+
+  log_success "Updated. Run setup.sh inside $in_dir to regenerate the Xcode project."
+}
+
+add_platform_xcodegen() {
+  local yml="$1" platform="$2"
+  local destination=""
+  case "$platform" in
+    ios)         destination="iOS" ;;
+    ipados)      destination="iPadOS" ;;
+    macos)       destination="macOS" ;;
+    visionos)    destination="visionOS" ;;
+    maccatalyst) destination="macCatalyst" ;;
+    watchos)
+      log_error "watchOS support requires a separate target. Open project.yml manually and add a watchOS target."
+      exit 1
+      ;;
+    *) log_error "Unsupported platform: $platform"; exit 1 ;;
+  esac
+
+  if grep -q "^[[:space:]]*-[[:space:]]*$destination[[:space:]]*$" "$yml"; then
+    log_warn "$destination already present in $yml"
+    return
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    log_warn "python3 not found — add '- $destination' under supportedDestinations: in $yml manually"
+    return
+  fi
+
+  if ! python3 -c "
+import re, sys
+path, dest = '$yml', '$destination'
+with open(path) as f:
+    text = f.read()
+m = re.search(r'(supportedDestinations:\n)((?:\s*-\s+\S+\n)+)', text)
+if not m:
+    sys.exit(2)
+header, items = m.group(1), m.group(2)
+indent = re.match(r'(\s*)-', items.splitlines()[0]).group(1)
+new_items = items + f'{indent}- {dest}\n'
+new_text = text[:m.start()] + header + new_items + text[m.end():]
+with open(path, 'w') as f:
+    f.write(new_text)
+"; then
+    log_warn "Couldn't auto-edit; please add '- $destination' under supportedDestinations: manually in $yml"
+    return
+  fi
+
+  log_success "Added $destination to supportedDestinations:"
+}
+
+add_platform_tuist() {
+  local swift_file="$1" platform="$2"
+  local destination=""
+  case "$platform" in
+    ios)         destination=".iPhone" ;;
+    ipados)      destination=".iPad" ;;
+    macos)       destination=".mac" ;;
+    visionos)    destination=".appleVision" ;;
+    maccatalyst) destination=".macCatalyst" ;;
+    watchos)     destination=".appleWatch" ;;
+    *) log_error "Unsupported platform: $platform"; exit 1 ;;
+  esac
+
+  if grep -q "$destination" "$swift_file"; then
+    log_warn "$destination already present in $swift_file"
+    return
+  fi
+  log_warn "Tuist destinations live in code — please open $swift_file and add '$destination' to the 'destinations:' array."
+  log_info "Example: destinations: [.iPhone, .iPad, $destination]"
+}
+
+# ── Dispatch ─────────────────────────────────────────────────────────────────
+if [[ $# -lt 1 ]]; then
+  usage
+  exit 0
+fi
+
+case "$1" in
+  list)          shift; list_templates ;;
+  new)           shift; cmd_new "$@" ;;
+  add-platform)  shift; cmd_add_platform "$@" ;;
+  doctor)        shift; doctor ;;
+  -h|--help)     usage ;;
+  *) log_error "Unknown command: $1"; usage; exit 1 ;;
+esac

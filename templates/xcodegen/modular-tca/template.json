@@ -1,0 +1,16 @@
+{
+  "name": "XcodeGen / Modular TCA",
+  "key": "xcodegen-modular-tca",
+  "buildSystem": "xcodegen",
+  "architecture": "Modular TCA",
+  "architectureKey": "modular-tca",
+  "description": "The Composable Architecture (pointfreeco) split into AppFeature + child features. Each Reducer is independently testable via TestStore. Best when you need predictable state, time-travel debugging, and bulletproof testing.",
+  "configFile": "project.yml",
+  "generateCommand": "xcodegen generate",
+  "testCommand": "xcodebuild test -project __APP_NAME__.xcodeproj -scheme __APP_NAME__ -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -skip-testing:__APP_NAME__UITests",
+  "renamePatterns": [
+    "App/Sources/__APP_NAME__App.swift",
+    "App/Tests/__APP_NAME__Tests.swift",
+    "App/UITests/__APP_NAME__UITests.swift"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Tuist / Modular MVVM",
+  "key": "tuist-modular-mvvm",
+  "buildSystem": "tuist",
+  "architecture": "Modular MVVM",
+  "architectureKey": "modular-mvvm",
+  "description": "Tuist workspace with per-module Project.swift, ProjectDescriptionHelpers (Module enum + Project.module template), Core/Features split. Modeled on parrotalk-ios. Best when you'll have many features and want each module to live in its own Xcode project.",
+  "configFile": "Project.swift",
+  "generateCommand": "tuist generate",
+  "testCommand": "xcodebuild test -workspace __APP_NAME__.xcworkspace -scheme __APP_NAME__ -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -skip-testing:__APP_NAME__UITests",
+  "renamePatterns": [
+    "App/Sources/__APP_NAME__App.swift",
+    "App/UITests/__APP_NAME__UITests.swift"
+  ]
+}

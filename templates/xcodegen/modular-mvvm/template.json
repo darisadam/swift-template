@@ -1,0 +1,15 @@
+{
+  "name": "XcodeGen / Modular MVVM",
+  "key": "xcodegen-modular-mvvm",
+  "buildSystem": "xcodegen",
+  "architecture": "Modular MVVM",
+  "architectureKey": "modular-mvvm",
+  "description": "Local SPM modules (AppCore, CommonUI, CoreNavigation + feature packages) consumed by a single XcodeGen app target. Best when MVVM is enough but the app has multiple features.",
+  "configFile": "project.yml",
+  "generateCommand": "xcodegen generate",
+  "testCommand": "xcodebuild test -project __APP_NAME__.xcodeproj -scheme __APP_NAME__ -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -skip-testing:__APP_NAME__UITests",
+  "renamePatterns": [
+    "App/Sources/__APP_NAME__App.swift",
+    "App/UITests/__APP_NAME__UITests.swift"
+  ]
+}

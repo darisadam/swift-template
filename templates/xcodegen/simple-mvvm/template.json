@@ -1,0 +1,15 @@
+{
+  "name": "XcodeGen / Simple MVVM",
+  "key": "xcodegen-simple-mvvm",
+  "buildSystem": "xcodegen",
+  "architecture": "Simple MVVM",
+  "architectureKey": "simple-mvvm",
+  "description": "Single target, SwiftUI App, @Observable view models. Best for small apps, prototypes, and learning MVVM.",
+  "configFile": "project.yml",
+  "generateCommand": "xcodegen generate",
+  "testCommand": "xcodebuild test -project __APP_NAME__.xcodeproj -scheme __APP_NAME__ -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -skip-testing:__APP_NAME__UITests",
+  "renamePatterns": [
+    "App/Sources/App/__APP_NAME__App.swift",
+    "App/UITests/__APP_NAME__UITests.swift"
+  ]
+}

@@ -1,0 +1,35 @@
+---
+description: __APP_NAME__ — Swift project conventions
+alwaysApply: true
+---
+
+# __APP_NAME__ Cursor rules
+
+You are an expert iOS developer working on **__APP_NAME__**, a Swift __SWIFT_VERSION__ / iOS __DEPLOYMENT_TARGET__+ SwiftUI app using __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
+
+## Always
+
+- Use `@Observable` + `@MainActor` for ViewModels
+- Use `async/await` and structured concurrency — never `DispatchQueue`
+- Use explicit access control (`public`, `internal`, `private`)
+- 2-space indentation everywhere
+- Sorted imports
+
+## Never
+
+- Never use `print()` — use `Logger` from `os.log`
+- Never force-unwrap (`!`) — use `guard let` / `if let`
+- Never use `fatalError()` / `preconditionFailure()` — degrade gracefully
+- Never edit `.xcodeproj` / `.xcworkspace` directly — regenerate from `__CONFIG_FILE__`
+- Never add `// swiftlint:disable` comments
+
+## Verification
+
+After every change, run:
+
+```
+swiftlint lint --fix --config .swiftlint.yml
+__TEST_COMMAND__
+```
+
+See `CLAUDE.md` for architecture-specific rules and module map.

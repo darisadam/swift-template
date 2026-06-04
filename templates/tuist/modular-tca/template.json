@@ -1,0 +1,16 @@
+{
+  "name": "Tuist / Modular TCA",
+  "key": "tuist-modular-tca",
+  "buildSystem": "tuist",
+  "architecture": "Modular TCA",
+  "architectureKey": "modular-tca",
+  "description": "Tuist workspace with per-module Project.swift, ComposableArchitecture wired via Tuist/Package.swift (external dependency). AppFeature composes CounterFeature + SettingsFeature. TestStore tests per module.",
+  "configFile": "Project.swift",
+  "generateCommand": "tuist install && tuist generate",
+  "testCommand": "xcodebuild test -workspace __APP_NAME__.xcworkspace -scheme __APP_NAME__ -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -skip-testing:__APP_NAME__UITests",
+  "renamePatterns": [
+    "App/Sources/__APP_NAME__App.swift",
+    "App/Tests/__APP_NAME__Tests.swift",
+    "App/UITests/__APP_NAME__UITests.swift"
+  ]
+}

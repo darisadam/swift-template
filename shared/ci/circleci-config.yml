@@ -1,0 +1,51 @@
+# CircleCI for __APP_NAME__
+# https://circleci.com/docs/configuration-reference/
+
+version: 2.1
+
+jobs:
+  lint:
+    macos:
+      xcode: 16.0.0
+    steps:
+      - checkout
+      - run:
+          name: Install SwiftLint
+          command: brew install swiftlint
+      - run:
+          name: Lint
+          command: swiftlint lint --strict --config .swiftlint.yml
+
+  test:
+    macos:
+      xcode: 16.0.0
+    steps:
+      - checkout
+      - run:
+          name: Install mise + tools
+          command: |
+            curl https://mise.run | sh
+            export PATH="$HOME/.local/bin:$PATH"
+            mise install
+      - run:
+          name: Generate Xcode project
+          command: __GENERATE_COMMAND__
+      - run:
+          name: Run unit tests
+          command: |
+            xcodebuild test \
+              -workspace __APP_NAME__.xcworkspace \
+              -scheme __APP_NAME__ \
+              -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+              -skip-testing:__APP_NAME__UITests \
+              -quiet | xcbeautify
+      - store_artifacts:
+          path: TestResults
+
+workflows:
+  ci:
+    jobs:
+      - lint
+      - test:
+          requires:
+            - lint

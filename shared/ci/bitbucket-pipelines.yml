@@ -1,0 +1,37 @@
+# Bitbucket Pipelines for __APP_NAME__
+# Requires a self-hosted macOS runner with Xcode. See:
+# https://support.atlassian.com/bitbucket-cloud/docs/runners/
+
+image: atlassian/default-image:4
+
+pipelines:
+  default:
+    - parallel:
+        - step:
+            name: Lint
+            runs-on:
+              - self.hosted
+              - macos
+            script:
+              - swiftlint lint --strict --config .swiftlint.yml
+
+        - step:
+            name: Build & test
+            runs-on:
+              - self.hosted
+              - macos
+            script:
+              - sudo xcode-select -s /Applications/Xcode.app
+              - command -v mise || curl https://mise.run | sh
+              - export PATH="$HOME/.local/bin:$PATH"
+              - mise install
+              - __GENERATE_COMMAND__
+              - >-
+                xcodebuild test
+                -workspace __APP_NAME__.xcworkspace
+                -scheme __APP_NAME__
+                -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+                -skip-testing:__APP_NAME__UITests
+                -quiet | xcbeautify
+            artifacts:
+              - TestResults/**

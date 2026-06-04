@@ -1,0 +1,117 @@
+name: __APP_NAME__
+
+attributes:
+  ORGANIZATIONNAME: "__ORG_NAME__"
+
+options:
+  bundleIdPrefix: __BUNDLE_ID__
+  deploymentTarget:
+    iOS: "__DEPLOYMENT_TARGET__"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  generateEmptyDirectories: true
+  developmentLanguage: en
+
+settings:
+  base:
+    SWIFT_VERSION: __SWIFT_VERSION__
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CLANG_ENABLE_MODULES: YES
+    GENERATE_INFOPLIST_FILE: NO
+  configs:
+    Debug:
+      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+      ONLY_ACTIVE_ARCH: YES
+      SWIFT_OPTIMIZATION_LEVEL: -Onone
+    Release:
+      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+      SWIFT_OPTIMIZATION_LEVEL: -O
+
+targets:
+  __APP_NAME__:
+    type: application
+    platform: iOS
+    deploymentTarget: "__DEPLOYMENT_TARGET__"
+    supportedDestinations:
+      - iOS
+      - iPadOS
+      # Uncomment to add more destinations:
+      # - macOS
+      # - visionOS
+      # - macCatalyst
+    sources:
+      - path: App/Sources
+    resources:
+      - path: App/Resources
+    info:
+      path: App/Resources/Plist/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: "$(DEVELOPMENT_LANGUAGE)"
+        CFBundleExecutable: "$(EXECUTABLE_NAME)"
+        CFBundleIdentifier: "$(PRODUCT_BUNDLE_IDENTIFIER)"
+        CFBundleInfoDictionaryVersion: "6.0"
+        CFBundleName: "$(PRODUCT_NAME)"
+        CFBundlePackageType: "$(PRODUCT_BUNDLE_PACKAGE_TYPE)"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        ITSAppUsesNonExemptEncryption: false
+        LSRequiresIPhoneOS: true
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0.0
+        PRODUCT_BUNDLE_IDENTIFIER: __BUNDLE_ID__
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_CFBundleDisplayName: "__APP_NAME__"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+    scheme:
+      testTargets:
+        - name: __APP_NAME__Tests
+        - name: __APP_NAME__UITests
+      gatherCoverageData: true
+
+  __APP_NAME__Tests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "__DEPLOYMENT_TARGET__"
+    sources:
+      - path: __APP_NAME__Tests
+    dependencies:
+      - target: __APP_NAME__
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: __BUNDLE_ID__.tests
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+
+  __APP_NAME__UITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "__DEPLOYMENT_TARGET__"
+    sources:
+      - path: __APP_NAME__UITests
+    dependencies:
+      - target: __APP_NAME__
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: __BUNDLE_ID__.uitests
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""

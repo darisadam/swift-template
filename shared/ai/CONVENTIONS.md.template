@@ -1,0 +1,34 @@
+# Conventions
+
+Aider reads `CONVENTIONS.md` automatically. This document codifies what every file in this repo follows.
+
+## Project
+
+__APP_NAME__ — Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, SwiftUI, __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
+
+## Hard rules
+
+1. **2-space indentation** for Swift, YAML, JSON, Markdown.
+2. **Explicit access control** on every type and function. Default is `internal`, but be explicit.
+3. **`@Observable @MainActor`** for view models. Never `ObservableObject`.
+4. **`async/await`** for asynchronous code. Never `DispatchQueue`. Use actors for shared mutable state.
+5. **Sorted imports**, alphabetically.
+6. **No `print()`** — use `Logger` from `os.log`.
+7. **No `fatalError()`** or `preconditionFailure()` — degrade gracefully.
+8. **No force unwrap (`!`)** — use `guard let` / `if let` / `??`.
+9. **No `// swiftlint:disable`** — fix the root cause instead.
+
+## Project commands
+
+```bash
+./setup.sh                                    # full setup
+__GENERATE_COMMAND__                          # regenerate project
+swiftlint lint --fix --config .swiftlint.yml  # auto-fix style
+__TEST_COMMAND__
+```
+
+## Architecture
+
+Module dependency direction: `Features → Core → External`. Never invert.
+
+See `README.md` for the module map.

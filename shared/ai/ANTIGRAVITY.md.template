@@ -1,0 +1,38 @@
+# __APP_NAME__ — Antigravity instructions
+
+Project context for Google Antigravity (and other Gemini-family agents that read this file). Aligned with `CLAUDE.md` and `GEMINI.md` if those exist.
+
+## Stack
+
+Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, SwiftUI, __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
+
+## Commands
+
+| Action | Command |
+|--------|---------|
+| Generate Xcode project | `__GENERATE_COMMAND__` |
+| Run tests | `__TEST_COMMAND__` |
+| Lint | `swiftlint lint --config .swiftlint.yml` |
+| Auto-fix lint | `swiftlint lint --fix --config .swiftlint.yml` |
+| Full setup | `./setup.sh` |
+
+## Style guardrails
+
+- 2-space indent everywhere
+- `@Observable @MainActor` ViewModels (not `ObservableObject`)
+- `async/await` and actors; no `DispatchQueue`
+- Sorted imports
+- No `print`, no `fatalError`, no force-unwrap (`!`)
+- No `// swiftlint:disable` directives — fix the root cause
+
+## Architecture
+
+`__ARCHITECTURE_NAME__`. See `README.md` and `CLAUDE.md` for module map + dependency direction.
+
+## Definition of done
+
+A task is done when:
+
+1. `swiftlint lint --config .swiftlint.yml` prints 0 violations
+2. `__TEST_COMMAND__` passes
+3. New code follows the existing file/folder conventions in this repo

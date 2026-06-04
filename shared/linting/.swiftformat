@@ -1,0 +1,22 @@
+# SwiftFormat configuration for __APP_NAME__
+# https://github.com/nicklockwood/SwiftFormat
+
+--swiftversion 6.0
+--indent 2
+--maxwidth 120
+--linebreaks lf
+--ranges no-space
+--operatorfunc spaced
+--patternlet inline
+--self remove
+--semicolons never
+--stripunusedargs closure-only
+--trimwhitespace always
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--wrapconditions after-first
+--wrapreturntype if-multiline
+--wrapternary default
+
+--exclude .build,DerivedData,Derived,**/*.generated.swift,Tuist

@@ -1,0 +1,16 @@
+{
+  "name": "XcodeGen / Clean Architecture + MVVM + Repository",
+  "key": "xcodegen-clean-mvvm-repository",
+  "buildSystem": "xcodegen",
+  "architecture": "Clean Architecture + MVVM + Repository",
+  "architectureKey": "clean-mvvm-repository",
+  "description": "Layered Domain/Data/Presentation modules per feature, repository protocols inverted at the Domain boundary, Use Cases, an explicit Composition Root. Best for medium/large apps where boundaries and testability matter most.",
+  "configFile": "project.yml",
+  "generateCommand": "xcodegen generate",
+  "testCommand": "xcodebuild test -project __APP_NAME__.xcodeproj -scheme __APP_NAME__ -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -skip-testing:__APP_NAME__UITests",
+  "renamePatterns": [
+    "App/Sources/__APP_NAME__App.swift",
+    "App/Tests/__APP_NAME__Tests.swift",
+    "App/UITests/__APP_NAME__UITests.swift"
+  ]
+}

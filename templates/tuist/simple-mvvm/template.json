@@ -1,0 +1,15 @@
+{
+  "name": "Tuist / Simple MVVM",
+  "key": "tuist-simple-mvvm",
+  "buildSystem": "tuist",
+  "architecture": "Simple MVVM",
+  "architectureKey": "simple-mvvm",
+  "description": "Single Tuist Project.swift, multi-platform destinations (iPhone/iPad/Mac/Vision/Catalyst configurable), @Observable view models. Quickest way to start with Tuist.",
+  "configFile": "Project.swift",
+  "generateCommand": "tuist generate",
+  "testCommand": "xcodebuild test -workspace __APP_NAME__.xcworkspace -scheme __APP_NAME__ -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -skip-testing:__APP_NAME__UITests",
+  "renamePatterns": [
+    "Sources/App/__APP_NAME__App.swift",
+    "UITests/__APP_NAME__UITests.swift"
+  ]
+}

@@ -1,0 +1,17 @@
+Project: __APP_NAME__ — Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, SwiftUI, __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__.
+
+Style rules (non-negotiable):
+- 2-space indent
+- Explicit access control
+- @Observable @MainActor view models (no ObservableObject)
+- async/await only (no DispatchQueue)
+- Sorted imports
+- No print, no fatalError, no force-unwrap, no // swiftlint:disable
+
+Verify with:
+  swiftlint lint --config .swiftlint.yml
+  __TEST_COMMAND__
+
+Never edit .xcodeproj or .xcworkspace directly — regenerate from __CONFIG_FILE__.
+
+See CLAUDE.md and README.md for architecture details.

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(swiftlint:*)",
+      "Bash(swiftformat:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(xcrun:*)",
+      "Bash(tuist:*)",
+      "Bash(xcodegen:*)",
+      "Bash(mise:*)",
+      "Bash(./setup.sh:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git stash:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(pwd)",
+      "Bash(which:*)",
+      "Bash(env)",
+      "Read(./**)",
+      "Edit(./**)",
+      "Write(./**)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -fd:*)",
+      "Bash(sudo:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(brew install:*)",
+      "Bash(npm:*)",
+      "Bash(pip install:*)"
+    ]
+  }
+}

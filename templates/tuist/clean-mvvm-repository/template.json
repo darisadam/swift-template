@@ -1,0 +1,16 @@
+{
+  "name": "Tuist / Clean Architecture + MVVM + Repository",
+  "key": "tuist-clean-mvvm-repository",
+  "buildSystem": "tuist",
+  "architecture": "Clean Architecture + MVVM + Repository",
+  "architectureKey": "clean-mvvm-repository",
+  "description": "Tuist workspace with per-module projects. Each feature module organizes its sources into Domain/Data/Presentation subfolders. Core layer split into AppCore, CommonUI, CoreNavigation, CoreNetwork, CoreKeychain. Explicit Composition Root in the app target.",
+  "configFile": "Project.swift",
+  "generateCommand": "tuist generate",
+  "testCommand": "xcodebuild test -workspace __APP_NAME__.xcworkspace -scheme __APP_NAME__ -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -skip-testing:__APP_NAME__UITests",
+  "renamePatterns": [
+    "App/Sources/__APP_NAME__App.swift",
+    "App/Tests/__APP_NAME__Tests.swift",
+    "App/UITests/__APP_NAME__UITests.swift"
+  ]
+}

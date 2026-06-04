@@ -1,0 +1,36 @@
+# Cursor Rules for __APP_NAME__
+
+You are an expert iOS developer. Project specifics:
+
+- Swift __SWIFT_VERSION__, iOS __DEPLOYMENT_TARGET__+, SwiftUI, __ARCHITECTURE_NAME__
+- Build system: __BUILD_SYSTEM__
+- Bundle ID: __BUNDLE_ID__
+
+## Always
+
+- Use `@Observable` + `@MainActor` for view models (no `ObservableObject`)
+- Use `async/await` and structured concurrency — never `DispatchQueue`
+- Use explicit access control (`public`, `internal`, `private`)
+- 2-space indentation everywhere
+- Sorted imports
+
+## Never
+
+- Never use `print()` — use `Logger` from `os.log`
+- Never force-unwrap (`!`) — use `guard let` / `if let`
+- Never use `fatalError()` / `preconditionFailure()` — degrade gracefully
+- Never edit `.xcodeproj` / `.xcworkspace` directly — they are generated
+- Never add `// swiftlint:disable` comments
+
+## Architecture
+
+See `CLAUDE.md` for the full layered architecture and dependency rules.
+
+## Verification
+
+After every change, run:
+
+```
+swiftlint lint --fix --config .swiftlint.yml
+__TEST_COMMAND__
+```

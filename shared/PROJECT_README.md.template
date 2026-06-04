@@ -1,0 +1,76 @@
+# __APP_NAME__
+
+> *One-line elevator pitch goes here. Replace this.*
+
+An iOS app built with Swift __SWIFT_VERSION__, SwiftUI, and __ARCHITECTURE_NAME__ on __BUILD_SYSTEM__. Minimum iOS __DEPLOYMENT_TARGET__.
+
+## Quickstart
+
+```bash
+./setup.sh                            # install tooling + generate the Xcode project
+__OPEN_COMMAND__                      # open in Xcode
+# then Cmd+R
+```
+
+## Development
+
+| Action | Command |
+|--------|---------|
+| Full setup (after `git pull`) | `./setup.sh` |
+| Quick regenerate | `./setup.sh --quick` |
+| Clean rebuild | `./setup.sh --clean` |
+| Regenerate Xcode project | `__GENERATE_COMMAND__` |
+| Run linter | `swiftlint lint --config .swiftlint.yml` |
+| Auto-fix lint | `swiftlint lint --fix --config .swiftlint.yml` |
+| Run unit tests | `__TEST_COMMAND__` |
+
+> Don't see one of these tools? Run `./setup.sh` — it installs the missing pieces.
+
+## Repo layout
+
+```
+__APP_NAME__/
+├── App/                            # the app target sources + resources
+│   ├── Sources/
+│   └── Resources/
+├── __APP_NAME__Tests/              # unit tests
+├── __APP_NAME__UITests/            # UI tests
+__MODULES_BLOCK____CONFIG_BLOCK__
+├── setup.sh                        # one-time + per-pull setup
+├── .swiftlint.yml                  # code style rules
+├── .gitignore
+└── README.md                       # you are here
+```
+
+## Architecture
+
+This project uses **__ARCHITECTURE_NAME__**. See `CLAUDE.md` for the detailed module map, dependency rules, and code style.
+
+__ARCHITECTURE_SUMMARY__
+
+## Rules
+
+- **2-space indentation** everywhere
+- **`@Observable @MainActor`** for view models — no `ObservableObject`
+- **`async/await`** only — no `DispatchQueue`
+- **Sorted imports**
+- **No `print()`**, no `fatalError()`, no force-unwrap (`!`)
+- **No `// swiftlint:disable`** — fix the root cause
+
+These rules are enforced by `.swiftlint.yml`. The linter will fail your CI build if you break them.
+
+## Verification (before every commit)
+
+```bash
+swiftlint lint --fix --config .swiftlint.yml
+swiftlint lint --config .swiftlint.yml          # must show 0 violations
+__TEST_COMMAND__                                # must pass
+```
+
+## Generated project notice
+
+This project was scaffolded with [**swift-template**](https://github.com/yourname/swift-template) (or your local copy). The build system manifest (`__CONFIG_FILE__`) is hand-written; the `*.xcodeproj` / `*.xcworkspace` files are **generated** — never commit them. Run `./setup.sh` to regenerate.
+
+## License
+
+*Pick a license. MIT, Apache-2.0, and proprietary are the common choices. Add `LICENSE` to the repo root.*
