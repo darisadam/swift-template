@@ -13,6 +13,7 @@ public enum Module: String, CaseIterable {
   case coreNavigation = "CoreNavigation"
   case coreNetwork = "CoreNetwork"
   case coreKeychain = "CoreKeychain"
+  case corePersistence = "CorePersistence"
 
   // Features
   case home = "HomeFeature"
@@ -22,7 +23,7 @@ public enum Module: String, CaseIterable {
 
   public var path: String {
     switch self {
-    case .appCore, .commonUI, .coreNavigation, .coreNetwork, .coreKeychain:
+    case .appCore, .commonUI, .coreNavigation, .coreNetwork, .coreKeychain, .corePersistence:
       "Modules/Core/\(rawValue)"
     case .home, .profile:
       "Modules/Features/\(rawValue)"

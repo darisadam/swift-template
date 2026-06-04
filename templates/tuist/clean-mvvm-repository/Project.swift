@@ -15,6 +15,7 @@ let project = Project.app(
     .project(target: Module.coreNavigation.targetName, path: .relativeToRoot(Module.coreNavigation.path)),
     .project(target: Module.coreNetwork.targetName, path: .relativeToRoot(Module.coreNetwork.path)),
     .project(target: Module.coreKeychain.targetName, path: .relativeToRoot(Module.coreKeychain.path)),
+    .project(target: Module.corePersistence.targetName, path: .relativeToRoot(Module.corePersistence.path)),
     .project(target: Module.home.targetName, path: .relativeToRoot(Module.home.path)),
     .project(target: Module.profile.targetName, path: .relativeToRoot(Module.profile.path))
   ]

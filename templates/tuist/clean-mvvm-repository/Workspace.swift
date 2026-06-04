@@ -14,6 +14,7 @@ let workspace = Workspace(
     "Modules/Core/CoreNavigation",
     "Modules/Core/CoreNetwork",
     "Modules/Core/CoreKeychain",
+    "Modules/Core/CorePersistence",
     "Modules/Features/HomeFeature",
     "Modules/Features/ProfileFeature"
   ],
