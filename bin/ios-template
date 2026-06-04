@@ -48,7 +48,7 @@ ${BOLD}Commands:${NC}
   add-platform [flags]          Add a platform destination to an existing project
   doctor                        Verify your machine has the required tooling
 
-${BOLD}\`new\` flags:${NC}
+${BOLD}\`new\` flags — required choices:${NC}
   --build-system <name>         tuist | xcodegen
   --architecture <name>         simple-mvvm | modular-mvvm | clean-mvvm-repository | modular-tca
   --name <AppName>              PascalCase app name (e.g. MyApp)
@@ -57,26 +57,52 @@ ${BOLD}\`new\` flags:${NC}
   --output <path>               Where to create the project (default: ./<AppName>)
   --deployment-target <ver>     Min iOS version (default: 17.0)
   --swift-version <ver>         Swift version (default: 6.0)
+
+${BOLD}\`new\` flags — optional customization:${NC}
+  --devices <set>               iphone | universal | all   (default: universal)
+                                  iphone     = iPhone only
+                                  universal  = iPhone + iPad
+                                  all        = iPhone + iPad + Mac + Vision + Catalyst
+  --persistence <kind>          none | swift-data | core-data   (default depends on template)
+  --test-framework <kind>       xctest | swift-testing          (default: xctest)
+  --swiftlint <yes|no>          Include SwiftLint config + zero-violation policy (default: yes)
+  --ci <provider>               github | gitlab | bitbucket | circleci | xcode-cloud | none
+                                  (default: github)
+  --ai-agents <list>            Comma-separated, any of:
+                                  claude, cursor, codex, gemini, antigravity, aider, windsurf
+                                  (default: claude)
+
+${BOLD}\`new\` flags — behavior:${NC}
   --no-git                      Skip 'git init' + initial commit
   --no-setup                    Skip running setup.sh after scaffold
-  -y, --yes                     Use defaults for any flag not supplied
+  -y, --yes                     Use defaults for any flag not supplied (non-interactive)
 
 ${BOLD}\`add-platform\` flags:${NC}
   --in <project-dir>            Path to the generated project (default: cwd)
   --platform <name>             ios | ipados | macos | visionos | maccatalyst | watchos
 
 ${BOLD}Examples:${NC}
-  ${DIM}# Interactive:${NC}
+  ${DIM}# Interactive — walks you through every choice:${NC}
   ios-template new
 
-  ${DIM}# Fully scripted:${NC}
+  ${DIM}# Fully scripted with all customization:${NC}
   ios-template new \\
     --build-system tuist \\
     --architecture clean-mvvm-repository \\
     --name Aurora \\
     --bundle-id com.example.aurora \\
     --org "Example Org" \\
-    --output ~/Projects/Aurora
+    --output ~/Projects/Aurora \\
+    --devices universal \\
+    --persistence swift-data \\
+    --test-framework swift-testing \\
+    --swiftlint yes \\
+    --ci github \\
+    --ai-agents claude,cursor,gemini
+
+  ${DIM}# Minimal — defaults for everything optional:${NC}
+  ios-template new --build-system xcodegen --architecture simple-mvvm \\
+    --name HelloWorld --bundle-id com.example.helloworld --org "Me" -y
 
   ${DIM}# Add Vision Pro support to an existing project:${NC}
   ios-template add-platform --in ~/Projects/Aurora --platform visionos
@@ -115,6 +141,65 @@ prompt_choice() {
     fi
     log_warn "Please enter a number between 1 and ${#choices[@]}"
   done
+}
+
+prompt_yes_no() {
+  # prompt_yes_no <question> <default-yes-or-no>  →  echoes "yes" or "no"
+  local question="$1" default="${2:-yes}" answer
+  local hint
+  if [[ "$default" == "yes" ]]; then hint="Y/n"; else hint="y/N"; fi
+  while true; do
+    printf "${CYAN}?${NC} %s ${DIM}[%s]${NC}: " "$question" "$hint" >&2
+    read -r answer
+    answer="${answer:-$default}"
+    case "$answer" in
+      y|Y|yes|YES|Yes) printf "yes"; return ;;
+      n|N|no|NO|No)    printf "no"; return ;;
+      *) log_warn "Please answer y or n" ;;
+    esac
+  done
+}
+
+prompt_multi() {
+  # prompt_multi <question> <default-csv> <choices...>  → echoes csv of chosen items
+  local question="$1" default_csv="$2"; shift 2
+  local choices=("$@") raw selected=()
+  printf "${CYAN}?${NC} %s\n" "$question" >&2
+  local i=1
+  for c in "${choices[@]}"; do
+    printf "    ${BOLD}%d.${NC} %s\n" "$i" "$c" >&2
+    ((i++))
+  done
+  printf "${CYAN}▸${NC} Enter numbers separated by commas (e.g. 1,3) ${DIM}[%s]${NC}: " "$default_csv" >&2
+  read -r raw
+  raw="${raw:-$default_csv}"
+  # Allow user to type numbers OR comma-separated names directly
+  if [[ "$raw" =~ ^[0-9,[:space:]]+$ ]]; then
+    local IFS=','
+    for n in $raw; do
+      n="${n// /}"
+      if [[ "$n" =~ ^[0-9]+$ ]] && (( n >= 1 && n <= ${#choices[@]} )); then
+        selected+=("${choices[$((n - 1))]}")
+      fi
+    done
+  else
+    # Treat as direct names
+    local IFS=','
+    for name in $raw; do
+      name="${name// /}"
+      selected+=("$name")
+    done
+  fi
+  ( IFS=','; printf '%s' "${selected[*]}" )
+}
+
+# Returns 0 if csv list contains item.  Usage: csv_contains "a,b,c" "b"
+csv_contains() {
+  local csv="$1" item="$2"
+  case ",$csv," in
+    *",$item,"*) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 # JSON-free parser for template.json fields we care about. Pure POSIX awk.
@@ -168,21 +253,25 @@ substitute_placeholders() {
     fi
   done < <(find "$root" -type f \
     \( -name "*.swift" -o -name "*.yml" -o -name "*.yaml" -o -name "*.json" \
-       -o -name "*.md" -o -name "*.plist" -o -name "*.sh" -o -name "*.toml" \
+       -o -name "*.md" -o -name "*.mdc" -o -name "*.plist" -o -name "*.sh" -o -name "*.toml" \
        -o -name ".swiftlint.yml" -o -name ".swiftformat" -o -name ".gitignore" \
-       -o -name ".cursorrules" -o -name ".editorconfig" -o -name "Info.plist" \
-       -o -name "Package.swift" \) \
+       -o -name ".cursorrules" -o -name ".windsurfrules" -o -name ".editorconfig" \
+       -o -name "Info.plist" -o -name "Package.swift" \) \
     -print0)
 }
 
-# Rename any file/directory that contains __APP_NAME__ in its path.
+# Rename any file/directory whose basename contains __APP_NAME__.
+# Walks deepest-first; renames ONLY the basename so an unrenamed parent dir
+# doesn't cause a "destination does not exist" mv error.
 rename_app_name_paths() {
   local root="$1" app_name="$2"
-  # Rename deepest-first so child renames don't break parent paths.
   while IFS= read -r -d '' path; do
-    local new_path="${path//__APP_NAME__/$app_name}"
-    if [[ "$path" != "$new_path" ]]; then
-      mv "$path" "$new_path"
+    local dir base new_base
+    dir="$(dirname "$path")"
+    base="$(basename "$path")"
+    new_base="${base//__APP_NAME__/$app_name}"
+    if [[ "$base" != "$new_base" ]]; then
+      mv "$path" "$dir/$new_base"
     fi
   done < <(find "$root" -depth -name "*__APP_NAME__*" -print0)
 }
@@ -266,6 +355,8 @@ doctor() {
 cmd_new() {
   local build_system="" architecture="" app_name="" bundle_id=""
   local org_name="" output_dir="" deployment_target="" swift_version=""
+  local devices="" persistence="" test_framework="" swiftlint_opt=""
+  local ci_provider="" ai_agents=""
   local do_git=1 do_setup=1 use_defaults=0
 
   while [[ $# -gt 0 ]]; do
@@ -278,6 +369,12 @@ cmd_new() {
       --output)            output_dir="$2"; shift 2 ;;
       --deployment-target) deployment_target="$2"; shift 2 ;;
       --swift-version)     swift_version="$2"; shift 2 ;;
+      --devices)           devices="$2"; shift 2 ;;
+      --persistence)       persistence="$2"; shift 2 ;;
+      --test-framework)    test_framework="$2"; shift 2 ;;
+      --swiftlint)         swiftlint_opt="$2"; shift 2 ;;
+      --ci)                ci_provider="$2"; shift 2 ;;
+      --ai-agents)         ai_agents="$2"; shift 2 ;;
       --no-git)            do_git=0; shift ;;
       --no-setup)          do_setup=0; shift ;;
       -y|--yes)            use_defaults=1; shift ;;
@@ -359,6 +456,88 @@ cmd_new() {
     fi
   fi
 
+  # Devices
+  if [[ -z "$devices" ]]; then
+    if (( use_defaults )); then
+      devices="universal"
+    else
+      devices="$(prompt_choice "Target devices?" "universal (iPhone + iPad)" "iphone (iPhone only)" "all (+ Mac, Vision, Catalyst)")"
+      # Strip suffixes; keep the keyword
+      devices="${devices%% *}"
+    fi
+  fi
+  case "$devices" in
+    iphone|universal|all) ;;
+    *) log_error "--devices must be one of: iphone, universal, all"; exit 1 ;;
+  esac
+
+  # Persistence — only meaningful for modular/clean templates; ignored otherwise
+  if [[ -z "$persistence" ]]; then
+    case "$architecture" in
+      clean-mvvm-repository)
+        if (( use_defaults )); then
+          persistence="swift-data"
+        else
+          persistence="$(prompt_choice "Persistence?" "swift-data" "core-data" "none")"
+        fi ;;
+      *)
+        persistence="none" ;;
+    esac
+  fi
+  case "$persistence" in
+    none|swift-data|core-data) ;;
+    *) log_error "--persistence must be one of: none, swift-data, core-data"; exit 1 ;;
+  esac
+
+  # Test framework
+  if [[ -z "$test_framework" ]]; then
+    if (( use_defaults )); then
+      test_framework="xctest"
+    else
+      test_framework="$(prompt_choice "Test framework?" "xctest" "swift-testing")"
+    fi
+  fi
+  case "$test_framework" in
+    xctest|swift-testing) ;;
+    *) log_error "--test-framework must be one of: xctest, swift-testing"; exit 1 ;;
+  esac
+
+  # SwiftLint
+  if [[ -z "$swiftlint_opt" ]]; then
+    if (( use_defaults )); then
+      swiftlint_opt="yes"
+    else
+      swiftlint_opt="$(prompt_yes_no "Include SwiftLint config?" "yes")"
+    fi
+  fi
+  case "$swiftlint_opt" in
+    yes|no) ;;
+    *) log_error "--swiftlint must be 'yes' or 'no'"; exit 1 ;;
+  esac
+
+  # CI provider
+  if [[ -z "$ci_provider" ]]; then
+    if (( use_defaults )); then
+      ci_provider="github"
+    else
+      ci_provider="$(prompt_choice "CI provider?" "github" "gitlab" "bitbucket" "circleci" "xcode-cloud" "none")"
+    fi
+  fi
+  case "$ci_provider" in
+    github|gitlab|bitbucket|circleci|xcode-cloud|none) ;;
+    *) log_error "--ci must be one of: github, gitlab, bitbucket, circleci, xcode-cloud, none"; exit 1 ;;
+  esac
+
+  # AI agent files (multi-select)
+  if [[ -z "$ai_agents" ]]; then
+    if (( use_defaults )); then
+      ai_agents="claude"
+    else
+      ai_agents="$(prompt_multi "AI agent config files? (comma-separated)" "1" \
+        "claude" "cursor" "codex" "gemini" "antigravity" "aider" "windsurf")"
+    fi
+  fi
+
   local arch_name
   arch_name="$(read_field "$template_dir/template.json" "architecture")"
 
@@ -371,6 +550,12 @@ cmd_new() {
   printf "  Output:              ${CYAN}%s${NC}\n" "$output_dir"
   printf "  Deployment target:   ${CYAN}iOS %s${NC}\n" "$deployment_target"
   printf "  Swift version:       ${CYAN}%s${NC}\n" "$swift_version"
+  printf "  Devices:             ${CYAN}%s${NC}\n" "$devices"
+  printf "  Persistence:         ${CYAN}%s${NC}\n" "$persistence"
+  printf "  Test framework:      ${CYAN}%s${NC}\n" "$test_framework"
+  printf "  SwiftLint:           ${CYAN}%s${NC}\n" "$swiftlint_opt"
+  printf "  CI:                  ${CYAN}%s${NC}\n" "$ci_provider"
+  printf "  AI agents:           ${CYAN}%s${NC}\n" "$ai_agents"
   printf "  Run setup.sh:        ${CYAN}%s${NC}\n" "$([[ $do_setup -eq 1 ]] && echo yes || echo no)"
   printf "  Init git:            ${CYAN}%s${NC}\n" "$([[ $do_git -eq 1 ]] && echo yes || echo no)"
 
@@ -391,20 +576,127 @@ cmd_new() {
   rm -f "$output_dir/template.json"
   log_success "Template copied"
 
-  log_step "Adding shared assets (linting, gitignore, AI agent files)…"
-  cp "$SHARED_DIR/linting/.swiftlint.yml" "$output_dir/.swiftlint.yml"
-  cp "$SHARED_DIR/linting/.swiftformat" "$output_dir/.swiftformat"
+  log_step "Adding shared assets…"
+  # Always-on: gitignore, editorconfig, mise.toml
   cp "$SHARED_DIR/git/.gitignore" "$output_dir/.gitignore"
   cp "$SHARED_DIR/.editorconfig" "$output_dir/.editorconfig"
   cp "$SHARED_DIR/mise.toml.template" "$output_dir/mise.toml"
-  cp "$SHARED_DIR/ai/CLAUDE.md.template" "$output_dir/CLAUDE.md"
-  cp "$SHARED_DIR/ai/AGENTS.md.template" "$output_dir/AGENTS.md"
-  cp "$SHARED_DIR/ai/.cursorrules.template" "$output_dir/.cursorrules"
-  mkdir -p "$output_dir/.claude/commands"
-  cp "$SHARED_DIR/ai/.claude/settings.json.template" "$output_dir/.claude/settings.json"
-  cp "$SHARED_DIR/ai/.claude/commands/"*.md "$output_dir/.claude/commands/"
-  mkdir -p "$output_dir/.github/workflows"
-  cp "$SHARED_DIR/github/workflows/ci.yml" "$output_dir/.github/workflows/ci.yml"
+
+  # SwiftLint (optional)
+  if [[ "$swiftlint_opt" == "yes" ]]; then
+    cp "$SHARED_DIR/linting/.swiftlint.yml" "$output_dir/.swiftlint.yml"
+    cp "$SHARED_DIR/linting/.swiftformat" "$output_dir/.swiftformat"
+    log_info "SwiftLint config added"
+  else
+    log_info "SwiftLint config skipped (--swiftlint no)"
+  fi
+
+  # AI agent files (multi-select)
+  local agents_added=""
+  if csv_contains "$ai_agents" "claude"; then
+    cp "$SHARED_DIR/ai/CLAUDE.md.template" "$output_dir/CLAUDE.md"
+    mkdir -p "$output_dir/.claude/commands"
+    cp "$SHARED_DIR/ai/.claude/settings.json.template" "$output_dir/.claude/settings.json"
+    cp "$SHARED_DIR/ai/.claude/commands/"*.md "$output_dir/.claude/commands/"
+    agents_added+=" claude"
+  fi
+  if csv_contains "$ai_agents" "cursor"; then
+    cp "$SHARED_DIR/ai/.cursorrules.template" "$output_dir/.cursorrules"
+    mkdir -p "$output_dir/.cursor/rules"
+    cp "$SHARED_DIR/ai/.cursor/rules/main.mdc.template" "$output_dir/.cursor/rules/main.mdc"
+    agents_added+=" cursor"
+  fi
+  if csv_contains "$ai_agents" "codex" || csv_contains "$ai_agents" "agents"; then
+    cp "$SHARED_DIR/ai/AGENTS.md.template" "$output_dir/AGENTS.md"
+    agents_added+=" codex(AGENTS.md)"
+  fi
+  if csv_contains "$ai_agents" "gemini"; then
+    cp "$SHARED_DIR/ai/GEMINI.md.template" "$output_dir/GEMINI.md"
+    agents_added+=" gemini"
+  fi
+  if csv_contains "$ai_agents" "antigravity"; then
+    cp "$SHARED_DIR/ai/ANTIGRAVITY.md.template" "$output_dir/ANTIGRAVITY.md"
+    agents_added+=" antigravity"
+  fi
+  if csv_contains "$ai_agents" "aider"; then
+    cp "$SHARED_DIR/ai/CONVENTIONS.md.template" "$output_dir/CONVENTIONS.md"
+    agents_added+=" aider(CONVENTIONS.md)"
+  fi
+  if csv_contains "$ai_agents" "windsurf"; then
+    cp "$SHARED_DIR/ai/.windsurfrules.template" "$output_dir/.windsurfrules"
+    agents_added+=" windsurf"
+  fi
+  if [[ -n "$agents_added" ]]; then
+    log_info "AI agents added:$agents_added"
+  else
+    log_warn "No AI agent files added"
+  fi
+
+  # CI provider
+  case "$ci_provider" in
+    github)
+      mkdir -p "$output_dir/.github/workflows"
+      cp "$SHARED_DIR/ci/github-actions-ci.yml" "$output_dir/.github/workflows/ci.yml"
+      log_info "CI: GitHub Actions (.github/workflows/ci.yml)"
+      ;;
+    gitlab)
+      cp "$SHARED_DIR/ci/gitlab-ci.yml" "$output_dir/.gitlab-ci.yml"
+      log_info "CI: GitLab CI (.gitlab-ci.yml)"
+      ;;
+    bitbucket)
+      cp "$SHARED_DIR/ci/bitbucket-pipelines.yml" "$output_dir/bitbucket-pipelines.yml"
+      log_info "CI: Bitbucket Pipelines (bitbucket-pipelines.yml)"
+      ;;
+    circleci)
+      mkdir -p "$output_dir/.circleci"
+      cp "$SHARED_DIR/ci/circleci-config.yml" "$output_dir/.circleci/config.yml"
+      log_info "CI: CircleCI (.circleci/config.yml)"
+      ;;
+    xcode-cloud)
+      cp "$SHARED_DIR/ci/XCODE_CLOUD.md" "$output_dir/XCODE_CLOUD.md"
+      log_info "CI: Xcode Cloud (see XCODE_CLOUD.md for setup)"
+      ;;
+    none)
+      log_info "CI: none (skipped)"
+      ;;
+  esac
+
+  # Test framework — overlay swift-testing variant when applicable
+  if [[ "$test_framework" == "swift-testing" ]]; then
+    case "$architecture" in
+      simple-mvvm)
+        local variant="$SHARED_DIR/variants/test-framework-swift-testing/simple-mvvm-CounterViewModelTests.swift"
+        if [[ -f "$variant" ]]; then
+          cp "$variant" "$output_dir/__APP_NAME__Tests/CounterViewModelTests.swift"
+          log_info "Test framework: Swift Testing (replaced XCTest sample)"
+        fi
+        ;;
+      *)
+        log_warn "Swift Testing variant for $architecture not provided yet — keeping XCTest sample"
+        ;;
+    esac
+  fi
+
+  # Persistence — Core Data variant (clean-mvvm-repository only)
+  if [[ "$persistence" == "core-data" && "$architecture" == "clean-mvvm-repository" ]]; then
+    local cd_src="$SHARED_DIR/variants/persistence-core-data/CoreDataController.swift"
+    local cd_dst="$output_dir/Modules/Core/CorePersistence/Sources/CoreDataController.swift"
+    if [[ -f "$cd_src" && -d "$(dirname "$cd_dst")" ]]; then
+      cp "$cd_src" "$cd_dst"
+      # Remove the SwiftData controller so only one is active
+      rm -f "$output_dir/Modules/Core/CorePersistence/Sources/PersistenceController.swift"
+      log_info "Persistence: Core Data (CoreDataController.swift)"
+    else
+      log_warn "Couldn't apply Core Data variant for this template"
+    fi
+  fi
+
+  # Project-level README — replace the template's per-template README (which is a tour, not a project README)
+  # Save the tour as TEMPLATE_GUIDE.md in the generated project for reference.
+  if [[ -f "$output_dir/README.md" ]]; then
+    mv "$output_dir/README.md" "$output_dir/TEMPLATE_GUIDE.md"
+  fi
+  cp "$SHARED_DIR/PROJECT_README.md.template" "$output_dir/README.md"
 
   # Pick the right setup.sh template
   if [[ "$build_system" == "xcodegen" ]]; then
@@ -416,15 +708,27 @@ cmd_new() {
   log_success "Shared assets copied"
 
   log_step "Substituting placeholders…"
-  # Derive aux fields for templated CLAUDE.md / AGENTS.md / cursorrules.
+  # Derive aux fields for templated CLAUDE.md / AGENTS.md / GEMINI.md / etc.
   # IMPORTANT: these strings themselves contain __APP_NAME__, so we expand
-  # __APP_NAME__ inside them BEFORE injecting them into the docs — otherwise
-  # the docs end up with literal "__APP_NAME__" inside command examples.
-  local generate_cmd test_cmd config_file platforms_str
+  # __APP_NAME__ inside them BEFORE injecting them into the docs.
+  local generate_cmd test_cmd config_file platforms_str open_command
   generate_cmd="$(read_field "$template_dir/template.json" "generateCommand")"
   test_cmd="$(read_field "$template_dir/template.json" "testCommand")"
   config_file="$(read_field "$template_dir/template.json" "configFile")"
-  platforms_str="iPhone, iPad"
+
+  # Devices → platforms string for docs
+  case "$devices" in
+    iphone)    platforms_str="iPhone" ;;
+    universal) platforms_str="iPhone, iPad" ;;
+    all)       platforms_str="iPhone, iPad, Mac, Vision Pro, macCatalyst" ;;
+  esac
+
+  # Open command depends on build system
+  if [[ "$build_system" == "tuist" ]]; then
+    open_command="open ${app_name}.xcworkspace"
+  else
+    open_command="open ${app_name}.xcodeproj"
+  fi
 
   generate_cmd="${generate_cmd//__APP_NAME__/$app_name}"
   test_cmd="${test_cmd//__APP_NAME__/$app_name}"
@@ -436,11 +740,38 @@ cmd_new() {
   sed_escape_replacement() {
     printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/&/\\&/g' -e 's/|/\\|/g'
   }
-  local generate_cmd_esc test_cmd_esc config_file_esc platforms_esc
+  local generate_cmd_esc test_cmd_esc config_file_esc platforms_esc open_command_esc
+  local modules_block_esc config_block_esc arch_summary_esc
   generate_cmd_esc="$(sed_escape_replacement "$generate_cmd")"
   test_cmd_esc="$(sed_escape_replacement "$test_cmd")"
   config_file_esc="$(sed_escape_replacement "$config_file")"
   platforms_esc="$(sed_escape_replacement "$platforms_str")"
+  open_command_esc="$(sed_escape_replacement "$open_command")"
+
+  # Conditional blocks for PROJECT_README.md
+  local modules_block="" config_block="" arch_summary=""
+  case "$architecture" in
+    simple-mvvm) modules_block="" ;;
+    *) modules_block="├── Modules/                        # Core + Feature modules\n" ;;
+  esac
+  if [[ "$build_system" == "tuist" ]]; then
+    if [[ "$architecture" == "simple-mvvm" ]]; then
+      config_block="├── Project.swift                   # Tuist project manifest\n├── Tuist.swift                     # Tuist toolchain pin\n"
+    else
+      config_block="├── Project.swift                   # app target manifest\n├── Workspace.swift                 # workspace = root + modules\n├── Tuist.swift                     # Tuist toolchain pin\n├── Tuist/                          # Tuist plumbing\n"
+    fi
+  else
+    config_block="├── project.yml                     # XcodeGen project config\n"
+  fi
+  case "$architecture" in
+    simple-mvvm)              arch_summary="One Xcode target. SwiftUI views with @Observable @MainActor view models. Best for small apps and learning." ;;
+    modular-mvvm)             arch_summary="Per-feature modules under Modules/. The app target wires them together via CoreNavigation. Features cannot depend on other features." ;;
+    clean-mvvm-repository)    arch_summary="Per-feature Domain/Data/Presentation layers. Repository protocols live in Domain. The Composition Root in App/Sources/AppComposer.swift wires real implementations." ;;
+    modular-tca)              arch_summary="Each feature is a @Reducer; AppFeature composes children via Scope. State is value types, mutations happen only in reducers. TestStore-driven tests." ;;
+  esac
+  modules_block_esc="$(sed_escape_replacement "$modules_block")"
+  config_block_esc="$(sed_escape_replacement "$config_block")"
+  arch_summary_esc="$(sed_escape_replacement "$arch_summary")"
 
   # Pass 1: AI-doc-specific tokens. Do this BEFORE the broad substitution so
   # the resulting test/generate commands get their __APP_NAME__ replaced too.
@@ -450,12 +781,20 @@ cmd_new() {
       -e "s|__TEST_COMMAND__|$test_cmd_esc|g" \
       -e "s|__CONFIG_FILE__|$config_file_esc|g" \
       -e "s|__PLATFORMS__|$platforms_esc|g" \
-      -e "s|__ARCHITECTURE_DESCRIPTION__|See README.md and the module dependency graph.|g" \
+      -e "s|__OPEN_COMMAND__|$open_command_esc|g" \
+      -e "s|__MODULES_BLOCK__|$modules_block_esc|g" \
+      -e "s|__CONFIG_BLOCK__|$config_block_esc|g" \
+      -e "s|__ARCHITECTURE_SUMMARY__|$arch_summary_esc|g" \
+      -e "s|__ARCHITECTURE_DESCRIPTION__|See CLAUDE.md and the module dependency graph.|g" \
       "$file"
     rm -f "$file.bak"
   done < <(find "$output_dir" -type f \
     \( -name "CLAUDE.md" -o -name "AGENTS.md" -o -name ".cursorrules" \
-       -o -name "ci.yml" \) -print0)
+       -o -name "GEMINI.md" -o -name "ANTIGRAVITY.md" -o -name "CONVENTIONS.md" \
+       -o -name ".windsurfrules" -o -name "main.mdc" \
+       -o -name "ci.yml" -o -name ".gitlab-ci.yml" -o -name "bitbucket-pipelines.yml" \
+       -o -name "config.yml" -o -name "XCODE_CLOUD.md" \
+       -o -name "README.md" -o -name "TEMPLATE_GUIDE.md" \) -print0)
 
   # Pass 2: broad placeholder substitution across all text files.
   substitute_placeholders \

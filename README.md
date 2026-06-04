@@ -44,19 +44,25 @@ cd /Users/darisadam/Documents/Projects/Tools/swift-template
 ios-template new
 ```
 
-The interactive prompt will walk you through it. Or, if you already know what you want:
+The interactive prompt walks you through every choice. Or, if you already know what you want, supply flags directly:
 
 ```bash
 ios-template new \
   --build-system tuist \
   --architecture clean-mvvm-repository \
-  --name Aurora \
-  --bundle-id com.example.aurora \
-  --org "Example Org" \
-  --output ~/Projects/Aurora
+  --name Aurora --bundle-id com.example.aurora --org "Example Org" \
+  --output ~/Projects/Aurora \
+  --devices universal \
+  --persistence swift-data \
+  --test-framework xctest \
+  --swiftlint yes \
+  --ci github \
+  --ai-agents claude,cursor
 ```
 
 Then `cd ~/Projects/Aurora` and open the `.xcworkspace` (Tuist) or `.xcodeproj` (XcodeGen) file. **You're done. Hit Cmd+R in Xcode and the app runs.**
+
+> 📐 See [docs/customization.md](docs/customization.md) for every flag, what it does, and when to pick what.
 
 > 👶 **First time on iOS?** Read [docs/getting-started.md](docs/getting-started.md) — it explains every prerequisite, what Xcode is, and what each generated file does.
 
@@ -140,6 +146,7 @@ iOS development requires macOS and Xcode (Apple's IDE). The CLI is portable Bash
 | [docs/concepts.md](docs/concepts.md) | Plain-language glossary: Xcode, Tuist, MVVM, modules, all the jargon. |
 | [docs/architecture-decisions.md](docs/architecture-decisions.md) | The 4 architectures explained with code sketches + when to pick each. |
 | [docs/xcodegen-vs-tuist.md](docs/xcodegen-vs-tuist.md) | XcodeGen vs Tuist tradeoffs and a migration guide. |
+| [docs/customization.md](docs/customization.md) | Every CLI flag explained: AI agents, CI providers, persistence, test framework, devices. |
 | [docs/adding-platforms.md](docs/adding-platforms.md) | How to ship to Mac, Vision Pro, Apple Watch, widgets. |
 | `templates/<bs>/<arch>/README.md` | Per-template tour — what's in it, what to edit first. |
 | `CLAUDE.md` (this repo) | AI-assistant instructions for working on the *templates themselves*. |
@@ -149,12 +156,19 @@ iOS development requires macOS and Xcode (Apple's IDE). The CLI is portable Bash
 `ios-template new` performs these steps:
 
 1. Copies the chosen template tree to `--output`
-2. Adds **shared assets** from `shared/` — SwiftLint config, `.gitignore`, AI agent files, GitHub Actions, mise pin
-3. Picks the right `setup.sh` for the build system (XcodeGen vs Tuist)
-4. Substitutes placeholders (`__APP_NAME__` → your app name, etc.) throughout every file
-5. Renames `__APP_NAME__App.swift` etc. to use the real app name
-6. (Optional) `git init` + first commit
-7. (Optional) Runs `./setup.sh` inside the generated project (generates the Xcode project)
+2. Adds **shared assets** from `shared/`, conditional on your flags:
+   - `.gitignore`, `.editorconfig`, `mise.toml` — always
+   - `.swiftlint.yml` + `.swiftformat` — if `--swiftlint yes`
+   - AI agent files (each tool's preferred filename) — one per item in `--ai-agents`
+   - CI config — the right file at the right path, based on `--ci`
+   - Swift Testing variants — if `--test-framework swift-testing`
+   - Core Data variant — if `--persistence core-data` (only for clean-mvvm-repository)
+3. Saves the per-template tour as `TEMPLATE_GUIDE.md` and writes a fresh, user-facing `README.md`
+4. Picks the right `setup.sh` for the build system
+5. Substitutes placeholders (`__APP_NAME__`, `__BUNDLE_ID__`, etc.) throughout every file
+6. Renames `__APP_NAME__App.swift` and `__APP_NAME__Tests/` etc. to use the real app name
+7. (Optional) `git init` + first commit
+8. (Optional) Runs `./setup.sh` inside the generated project
 
 ## Repo layout
 
@@ -166,11 +180,13 @@ iOS development requires macOS and Xcode (Apple's IDE). The CLI is portable Bash
 ├── templates/                             # the 8 templates (the source of what gets copied)
 │   ├── xcodegen/{simple-mvvm, modular-mvvm, clean-mvvm-repository, modular-tca}/
 │   └── tuist/   {simple-mvvm, modular-mvvm, clean-mvvm-repository, modular-tca}/
-├── shared/                                # files added to *every* generated project
-│   ├── ai/                                # CLAUDE.md, AGENTS.md, .cursorrules, .claude/
-│   ├── linting/                           # .swiftlint.yml, .swiftformat
+├── shared/                                # files added to generated projects (conditional on flags)
+│   ├── ai/                                # CLAUDE/AGENTS/GEMINI/ANTIGRAVITY/CONVENTIONS/.cursorrules/.windsurfrules/.claude/
+│   ├── ci/                                # github-actions / gitlab / bitbucket / circleci / xcode-cloud
+│   ├── linting/                           # .swiftlint.yml, .swiftformat (only copied if --swiftlint yes)
 │   ├── git/.gitignore
-│   ├── github/workflows/ci.yml
+│   ├── variants/                          # persistence-core-data/, test-framework-swift-testing/
+│   ├── PROJECT_README.md.template         # the user-facing README placed in generated projects
 │   ├── setup-xcodegen.sh.template
 │   ├── setup-tuist.sh.template
 │   └── mise.toml.template, .editorconfig
