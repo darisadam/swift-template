@@ -1,0 +1,48 @@
+# swift-template (this repo) — .gitignore
+#
+# This file ignores junk in THIS repo (the template-authoring repo).
+# The .gitignore that lands inside generated projects lives at
+# shared/git/.gitignore — don't conflate the two.
+
+# ── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# ── Editors / IDEs ───────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── sed -i.bak leftovers ─────────────────────────────────────────────────────
+# The CLI uses `sed -i.bak` and cleans up after itself, but if a substitution
+# is interrupted mid-run a *.bak file can survive. Never commit those.
+*.bak
+
+# ── Local smoke-test artifacts ───────────────────────────────────────────────
+# If someone runs `./bin/ios-template new --output ./Something …` from this
+# repo to test the CLI, that directory should not be committed.
+/smoke-*/
+/tmp-*/
+/test-output*/
+/Demo/
+/Aurora/
+/HelloWorld/
+
+# ── Shell history / scratch ──────────────────────────────────────────────────
+.bash_history
+.zsh_history
+scratch/
+TODO.local.md
+
+# ── Python (the CLI uses inline python3 for YAML editing; cache may leak) ────
+__pycache__/
+*.pyc
+
+# ── Generated docs / coverage (none today, but reserve the pattern) ──────────
+/coverage/
+/site/
